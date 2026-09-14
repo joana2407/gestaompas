@@ -227,7 +227,7 @@ function MaterialCard({ material }: { material: Material }) {
       ) : (
         <p className="mt-1 text-sm">
           <span className="text-muted-foreground">Ingredientes: </span>
-          {ingredients.length > 0 ? ingredients.map((i) => i.name).join(", ") : "—"}
+          {ingredients.length > 0 ? ingredients.map((i) => i.name).join(", ") : "—"}{" "}
           <button
             type="button"
             onClick={() => setEditing(true)}
