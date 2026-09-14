@@ -58,13 +58,11 @@ function Inventory() {
         .select("id, name");
       if (error) throw new Error(error.message);
 
-      const ingredientRows = parsed.flatMap((m, index) =>
-        m.ingredients.map((i) => ({
-          raw_material_id: inserted?.[index]?.id,
-          name: i.name,
-          origin: i.origin,
-        })),
-      );
+      const ingredientRows = parsed.flatMap((m, index) => {
+        const materialId = inserted?.[index]?.id;
+        if (!materialId) return [];
+        return m.ingredients.map((i) => ({ raw_material_id: materialId, name: i.name, origin: i.origin }));
+      });
       if (ingredientRows.length > 0) {
         const { error: ingredientError } = await supabase.from("raw_material_ingredients").insert(ingredientRows);
         if (ingredientError) throw new Error(ingredientError.message);
@@ -133,33 +131,114 @@ function Inventory() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((material) => (
-            <article key={material.id} className="panel p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-display text-base font-semibold">{material.name}</h2>
-                  <p className="text-xs text-muted-foreground">{material.code}</p>
-                </div>
-                <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                  {material.kind === "composta" ? "Composta" : "Simples"}
-                </span>
-              </div>
-              {material.origins.length > 0 ? (
-                <p className="mt-3 text-sm">
-                  <span className="text-muted-foreground">Origens: </span>
-                  {material.origins.join(", ")}
-                </p>
-              ) : null}
-              {(material.raw_material_ingredients ?? []).length > 0 ? (
-                <p className="mt-1 text-sm">
-                  <span className="text-muted-foreground">Ingredientes: </span>
-                  {(material.raw_material_ingredients ?? []).map((i) => i.name).join(", ")}
-                </p>
-              ) : null}
-              {material.notes ? <p className="mt-2 text-xs text-muted-foreground">{material.notes}</p> : null}
-            </article>
+            <MaterialCard key={material.id} material={material} />
           ))}
         </div>
+
       )}
     </AppShell>
+  );
+}
+
+type Material = {
+  id: string;
+  code: string | null;
+  name: string;
+  kind: string;
+  origins: string[];
+  supplier: string | null;
+  notes: string | null;
+  raw_material_ingredients: { id: string; name: string; origin: string | null }[] | null;
+};
+
+function MaterialCard({ material }: { material: Material }) {
+  const queryClient = useQueryClient();
+  const ingredients = material.raw_material_ingredients ?? [];
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(ingredients.map((i) => i.name).join(", "));
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const names = value
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean);
+      await supabase.from("raw_material_ingredients").delete().eq("raw_material_id", material.id);
+      if (names.length > 0) {
+        const { error } = await supabase
+          .from("raw_material_ingredients")
+          .insert(names.map((name) => ({ raw_material_id: material.id, name, origin: null })));
+        if (error) throw new Error(error.message);
+      }
+      await supabase
+        .from("raw_materials")
+        .update({ kind: names.length > 1 ? "composta" : material.kind })
+        .eq("id", material.id);
+      await queryClient.invalidateQueries();
+      setEditing(false);
+      toast.success("Ingredientes atualizados.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <article className="panel p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-base font-semibold">{material.name}</h2>
+          <p className="text-xs text-muted-foreground">
+            {material.code}
+            {material.supplier ? ` · ${material.supplier}` : ""}
+          </p>
+        </div>
+        <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+          {material.kind === "composta" ? "Composta" : "Simples"}
+        </span>
+      </div>
+
+      {material.origins.length > 0 ? (
+        <p className="mt-3 text-sm">
+          <span className="text-muted-foreground">Origens: </span>
+          {material.origins.join(", ")}
+        </p>
+      ) : null}
+
+      {editing ? (
+        <div className="mt-3">
+          <Input
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder="Ingredientes separados por vírgula"
+          />
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" disabled={saving} onClick={() => void save()}>
+              Guardar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-1 text-sm">
+          <span className="text-muted-foreground">Ingredientes: </span>
+          {ingredients.length > 0 ? ingredients.map((i) => i.name).join(", ") : "—"}{" "}
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="ml-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
+          >
+            editar
+          </button>
+        </p>
+      )}
+
+      {material.notes ? <p className="mt-2 text-xs text-muted-foreground">{material.notes}</p> : null}
+    </article>
   );
 }

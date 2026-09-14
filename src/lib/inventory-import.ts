@@ -37,6 +37,11 @@ const COUNTRIES = [
   "romenia","bulgária","bulgaria","grécia","grecia","suíça","suica","noruega","nova zelândia","nova zelandia",
   "austrália","australia","japão","japao","coreia","paquistão","paquistao","bolívia","bolivia","colômbia","colombia",
   "costa do marfim","gana","nigéria","nigeria","quénia","quenia","ue","união europeia","uniao europeia","extra-ue",
+  "usa","estados unidos da américa","estónia","estonia","letónia","letonia","lituânia","lituania","eslováquia",
+  "eslovaquia","eslovénia","eslovenia","croácia","croacia","sérvia","servia","bielorrússia","bielorrussia","moldávia",
+  "moldavia","luxemburgo","malta","chipre","islândia","islandia","singapura","filipinas","malásia","malasia","taiwan",
+  "sri lanka","bangladesh","nepal","uruguai","paraguai","equador","venezuela","guatemala","honduras","panamá","panama",
+  "etiópia","etiopia","uganda","tanzânia","tanzania","senegal","argélia","argelia","líbano","libano","síria","siria",
 ];
 
 function clean(value: unknown): string {
@@ -69,6 +74,7 @@ export async function parseInventoryWorkbook(file: File): Promise<ParsedMaterial
   for (const sheetName of workbook.SheetNames) {
     if (shouldSkip(sheetName)) continue;
     const sheet = workbook.Sheets[sheetName];
+    if (!sheet) continue;
     const grid = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", blankrows: true });
 
     const labelRow = grid.findIndex((row) =>
@@ -101,8 +107,9 @@ export async function parseInventoryWorkbook(file: File): Promise<ParsedMaterial
 
     for (const column of columns) {
       const name = clean(nameRow[column]);
-      const originText = clean(originRow[column]) || clean(originRow[columns[0]]);
-      const ingredientText = clean(ingredientRow[column]) || clean(ingredientRow[columns[0]]);
+      const fallbackColumn = columns[0] ?? column;
+      const originText = clean(originRow[column]) || clean(originRow[fallbackColumn]);
+      const ingredientText = clean(ingredientRow[column]) || clean(ingredientRow[fallbackColumn]);
 
       const origins = splitList(originText).filter(Boolean);
       const ingredients: ParsedIngredient[] = [];

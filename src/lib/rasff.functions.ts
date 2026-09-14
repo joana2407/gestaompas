@@ -111,7 +111,7 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
     const alerts = z
       .array(alertSchema)
       .catch([])
-      .parse(extraction.alerts ?? [])
+      .parse(extraction["alerts"] ?? [])
       .filter((a) => a.product && a.product.trim().length > 1);
 
     if (alerts.length === 0) throw new Error("Não foi possível identificar alertas no documento enviado.");
@@ -143,8 +143,8 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       JSON.stringify({ alertas: alerts, inventario: inventoryForAI }).slice(0, 200000),
     );
 
-    const findings = z.array(findingSchema).catch([]).parse(assessment.findings ?? []);
-    const summary = typeof assessment.summary === "string" ? assessment.summary : null;
+    const findings = z.array(findingSchema).catch([]).parse(assessment["findings"] ?? []);
+    const summary = typeof assessment["summary"] === "string" ? (assessment["summary"] as string) : null;
 
     const { data: analysis, error: analysisError } = await supabaseAdmin
       .from("analyses")

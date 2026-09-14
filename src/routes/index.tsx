@@ -107,9 +107,9 @@ function Dashboard() {
                     fontSize: 13,
                   }}
                 />
-                <Bar dataKey="Alto" stackId="r" fill="var(--color-high)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="Médio" stackId="r" fill="var(--color-medium)" />
-                <Bar dataKey="Baixo" stackId="r" fill="var(--color-low)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Alto" barSize={44} stackId="r" fill="var(--color-high)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="Médio" barSize={44} stackId="r" fill="var(--color-medium)" />
+                <Bar dataKey="Baixo" barSize={44} stackId="r" fill="var(--color-low)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
