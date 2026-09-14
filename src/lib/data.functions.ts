@@ -156,8 +156,11 @@ export const updateFinding = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const db = await gate();
-    const { id, ...patch } = data;
-    const { error } = await db.from("risk_findings").update(patch).eq("id", id);
+    const patch: { risk_level?: string; reviewed?: boolean; review_note?: string | null } = {};
+    if (data.risk_level !== undefined) patch.risk_level = data.risk_level;
+    if (data.reviewed !== undefined) patch.reviewed = data.reviewed;
+    if (data.review_note !== undefined) patch.review_note = data.review_note ?? null;
+    const { error } = await db.from("risk_findings").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
