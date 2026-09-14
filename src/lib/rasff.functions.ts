@@ -8,6 +8,8 @@ async function askAI(system: string, user: string) {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("A análise automática não está disponível (chave de IA ausente).");
 
+  // Streaming keeps bytes flowing: a buffered call on a long RASFF listing gets
+  // severed by the edge with a 524 before the model finishes.
   const response = await fetch(GATEWAY, {
     method: "POST",
     headers: {
@@ -16,6 +18,7 @@ async function askAI(system: string, user: string) {
     },
     body: JSON.stringify({
       model: MODEL,
+      stream: true,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -24,18 +27,42 @@ async function askAI(system: string, user: string) {
     }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
+  if (!response.ok || !response.body) {
+    const body = await response.text().catch(() => "");
     console.error(`AI gateway failed [${response.status}]: ${body}`);
     if (response.status === 429) throw new Error("Limite de utilização da IA atingido. Tente novamente daqui a pouco.");
     if (response.status === 402) throw new Error("Créditos de IA esgotados no espaço de trabalho.");
     throw new Error(`A análise falhou [${response.status}].`);
   }
 
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content ?? "{}";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let content = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const data = trimmed.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const chunk = JSON.parse(data) as {
+          choices?: Array<{ delta?: { content?: string } }>;
+        };
+        content += chunk.choices?.[0]?.delta?.content ?? "";
+      } catch {
+        // partial chunk, ignore
+      }
+    }
+  }
+
+  if (!content.trim()) throw new Error("A IA não devolveu resultados. Tente novamente.");
+
   try {
     return JSON.parse(content) as Record<string, unknown>;
   } catch {
@@ -97,22 +124,31 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       throw new Error("Importe primeiro o inventário de matérias-primas antes de correr a análise.");
     }
 
-    const extraction = await askAI(
-      [
-        "És especialista em segurança alimentar e analisas notificações RASFF.",
-        "Extrai TODOS os alertas do documento fornecido.",
-        'Responde apenas JSON: {"alerts":[{"reference","product","hazard","hazard_type","origin_country","manufacturer","notified_on","raw_text"}]}.',
-        "hazard_type deve ser um de: alergénio, microbiológico, químico, corpo estranho, fraude, radiação, outro.",
-        "notified_on em formato YYYY-MM-DD ou null. Escreve em português.",
-      ].join(" "),
-      data.text.slice(0, 120000),
-    );
+    const extractionSystem = [
+      "És especialista em segurança alimentar e analisas notificações RASFF.",
+      "Extrai TODOS os alertas do documento fornecido.",
+      'Responde apenas JSON: {"alerts":[{"reference","product","hazard","hazard_type","origin_country","manufacturer","notified_on","raw_text"}]}.',
+      "hazard_type deve ser um de: alergénio, microbiológico, químico, corpo estranho, fraude, radiação, outro.",
+      "notified_on em formato YYYY-MM-DD ou null. Escreve em português.",
+    ].join(" ");
 
-    const alerts = z
-      .array(alertSchema)
-      .catch([])
-      .parse(extraction["alerts"] ?? [])
-      .filter((a) => a.product && a.product.trim().length > 1);
+    // Split long listings so each model call stays short enough to finish.
+    const textChunks: string[] = [];
+    const full = data.text.slice(0, 200000);
+    const CHUNK = 25000;
+    for (let i = 0; i < full.length; i += CHUNK) textChunks.push(full.slice(i, i + CHUNK));
+
+    const alerts: z.infer<typeof alertSchema>[] = [];
+    for (const chunk of textChunks) {
+      const extraction = await askAI(extractionSystem, chunk);
+      alerts.push(
+        ...z
+          .array(alertSchema)
+          .catch([])
+          .parse(extraction["alerts"] ?? [])
+          .filter((a) => a.product && a.product.trim().length > 1),
+      );
+    }
 
     if (alerts.length === 0) throw new Error("Não foi possível identificar alertas no documento enviado.");
 
@@ -126,25 +162,33 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       ingredientes: (m.raw_material_ingredients ?? []).map((i) => ({ nome: i.name, origem: i.origin })),
     }));
 
-    const assessment = await askAI(
-      [
-        "És auditor de segurança alimentar numa empresa de panificação e pastelaria certificada BRC Food.",
-        "Cruza os alertas RASFF com o inventário de matérias-primas (MP) e devolve apenas as MP com risco real.",
-        "Regras de classificação:",
-        "ALTO: a MP ou um ingrediente componente é o produto do alerta, ou provém da mesma origem/fabricante do alerta.",
-        "MEDIO: a origem geográfica coincide e o tipo de produto é similar, mas a confirmação é incerta.",
-        "BAIXO: a origem coincide mas o tipo de produto ou fabricante é claramente diferente.",
-        "risk_type deve ser: direto, indireto ou origem.",
-        "traceability deve indicar se a MP é simples ou composta e se o risco vem da própria MP ou de um ingrediente.",
-        "recommendation deve ser acionável (verificação com fornecedor, suspensão de uso, re-teste, substituição, pedido de COA, etc.).",
-        'Responde apenas JSON: {"summary":"sumário executivo em português","findings":[{"alert_reference","raw_material_code","raw_material_name","raw_material_kind","ingredient_name","risk_level","risk_type","reason","recommendation","traceability"}]}',
-        "Escreve tudo em português de Portugal. Não inventes MP que não estejam no inventário.",
-      ].join(" "),
-      JSON.stringify({ alertas: alerts, inventario: inventoryForAI }).slice(0, 200000),
-    );
+    const assessmentSystem = [
+      "És auditor de segurança alimentar numa empresa de panificação e pastelaria certificada BRC Food.",
+      "Cruza os alertas RASFF com o inventário de matérias-primas (MP) e devolve apenas as MP com risco real.",
+      "Regras de classificação:",
+      "ALTO: a MP ou um ingrediente componente é o produto do alerta, ou provém da mesma origem/fabricante do alerta.",
+      "MEDIO: a origem geográfica coincide e o tipo de produto é similar, mas a confirmação é incerta.",
+      "BAIXO: a origem coincide mas o tipo de produto ou fabricante é claramente diferente.",
+      "risk_type deve ser: direto, indireto ou origem.",
+      "traceability deve indicar se a MP é simples ou composta e se o risco vem da própria MP ou de um ingrediente.",
+      "recommendation deve ser acionável (verificação com fornecedor, suspensão de uso, re-teste, substituição, pedido de COA, etc.).",
+      'Responde apenas JSON: {"summary":"sumário executivo em português","findings":[{"alert_reference","raw_material_code","raw_material_name","raw_material_kind","ingredient_name","risk_level","risk_type","reason","recommendation","traceability"}]}',
+      "Escreve tudo em português de Portugal. Não inventes MP que não estejam no inventário.",
+    ].join(" ");
 
-    const findings = z.array(findingSchema).catch([]).parse(assessment["findings"] ?? []);
-    const summary = typeof assessment["summary"] === "string" ? (assessment["summary"] as string) : null;
+    const findings: z.infer<typeof findingSchema>[] = [];
+    const summaries: string[] = [];
+    const BATCH = 20;
+    for (let i = 0; i < alerts.length; i += BATCH) {
+      const batch = alerts.slice(i, i + BATCH);
+      const assessment = await askAI(
+        assessmentSystem,
+        JSON.stringify({ alertas: batch, inventario: inventoryForAI }).slice(0, 150000),
+      );
+      findings.push(...z.array(findingSchema).catch([]).parse(assessment["findings"] ?? []));
+      if (typeof assessment["summary"] === "string") summaries.push(assessment["summary"] as string);
+    }
+    const summary = summaries.length > 0 ? summaries.join("\n\n") : null;
 
     const { data: analysis, error: analysisError } = await supabaseAdmin
       .from("analyses")
