@@ -1,4 +1,5 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { gateStatus } from "@/lib/gate.functions";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +25,10 @@ export const Route = createFileRoute("/analise/$analysisId")({
       { property: "og:description", content: "MP afetadas, nível de risco, rastreabilidade e recomendações de ação." },
     ],
   }),
+  beforeLoad: async () => {
+    const { unlocked } = await gateStatus();
+    if (!unlocked) throw redirect({ to: "/entrar" });
+  },
   loader: async ({ context, params }) => {
     const data = await context.queryClient.ensureQueryData(analysisDetailQuery(params.analysisId));
     if (!data.analysis) throw notFound();

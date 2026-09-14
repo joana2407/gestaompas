@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { gateStatus } from "@/lib/gate.functions";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +25,10 @@ export const Route = createFileRoute("/materias-primas")({
       { property: "og:description", content: "Importação e consulta das MP, origens e ingredientes componentes." },
     ],
   }),
+  beforeLoad: async () => {
+    const { unlocked } = await gateStatus();
+    if (!unlocked) throw redirect({ to: "/entrar" });
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(materialsQuery),
   component: Inventory,
 });
