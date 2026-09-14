@@ -19,13 +19,14 @@ export async function readSpreadsheetRows(file: File): Promise<InventoryRow[]> {
 
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
+    if (!sheet) continue;
     const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
     for (const row of json) {
       const clean: InventoryRow = {};
       for (const [key, value] of Object.entries(row)) {
         clean[normalizeKey(key)] = value == null ? "" : String(value).trim();
       }
-      clean.__sheet = sheetName;
+      clean["__sheet"] = sheetName;
       if (Object.values(clean).some((v) => v && v !== sheetName)) rows.push(clean);
     }
   }
@@ -37,7 +38,8 @@ export async function readSpreadsheetText(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
   return workbook.SheetNames.map((name) => {
-    const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[name]);
+    const sheet = workbook.Sheets[name];
+    const csv = sheet ? XLSX.utils.sheet_to_csv(sheet) : "";
     return `## Folha: ${name}\n${csv}`;
   }).join("\n\n");
 }
