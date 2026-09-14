@@ -7,7 +7,7 @@ import { Loader2, Search, Upload } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { replaceInventory, setIngredients } from "@/lib/data.functions";
 import { materialsQuery } from "@/lib/queries";
 import { parseInventoryWorkbook } from "@/lib/inventory-import";
 
@@ -40,33 +40,7 @@ function Inventory() {
       const parsed = await parseInventoryWorkbook(file);
       if (parsed.length === 0) throw new Error("Não foi possível encontrar matérias-primas nas abas deste ficheiro.");
 
-      await supabase.from("raw_materials").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-      const { data: inserted, error } = await supabase
-        .from("raw_materials")
-        .insert(
-          parsed.map((m) => ({
-            code: m.code,
-            name: m.name,
-            category: m.category,
-            kind: m.kind,
-            origins: m.origins,
-            supplier: m.supplier,
-            notes: m.notes,
-          })),
-        )
-        .select("id, name");
-      if (error) throw new Error(error.message);
-
-      const ingredientRows = parsed.flatMap((m, index) => {
-        const materialId = inserted?.[index]?.id;
-        if (!materialId) return [];
-        return m.ingredients.map((i) => ({ raw_material_id: materialId, name: i.name, origin: i.origin }));
-      });
-      if (ingredientRows.length > 0) {
-        const { error: ingredientError } = await supabase.from("raw_material_ingredients").insert(ingredientRows);
-        if (ingredientError) throw new Error(ingredientError.message);
-      }
+      await replaceInventory({ data: { materials: parsed } });
 
       await queryClient.invalidateQueries();
       toast.success(`${parsed.length} matérias-primas importadas.`);
@@ -165,17 +139,7 @@ function MaterialCard({ material }: { material: Material }) {
         .split(",")
         .map((n) => n.trim())
         .filter(Boolean);
-      await supabase.from("raw_material_ingredients").delete().eq("raw_material_id", material.id);
-      if (names.length > 0) {
-        const { error } = await supabase
-          .from("raw_material_ingredients")
-          .insert(names.map((name) => ({ raw_material_id: material.id, name, origin: null })));
-        if (error) throw new Error(error.message);
-      }
-      await supabase
-        .from("raw_materials")
-        .update({ kind: names.length > 1 ? "composta" : material.kind })
-        .eq("id", material.id);
+      await setIngredients({ data: { materialId: material.id, names, fallbackKind: material.kind } });
       await queryClient.invalidateQueries();
       setEditing(false);
       toast.success("Ingredientes atualizados.");

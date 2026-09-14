@@ -1,6 +1,9 @@
-import { Link } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { LogOut, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { lockSite } from "@/lib/gate.functions";
 
 const NAV = [
   { to: "/", label: "Dashboard" },
