@@ -8,6 +8,8 @@ async function askAI(system: string, user: string) {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("A análise automática não está disponível (chave de IA ausente).");
 
+  // Streaming keeps bytes flowing: a buffered call on a long RASFF listing gets
+  // severed by the edge with a 524 before the model finishes.
   const response = await fetch(GATEWAY, {
     method: "POST",
     headers: {
@@ -16,6 +18,7 @@ async function askAI(system: string, user: string) {
     },
     body: JSON.stringify({
       model: MODEL,
+      stream: true,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -24,18 +27,42 @@ async function askAI(system: string, user: string) {
     }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
+  if (!response.ok || !response.body) {
+    const body = await response.text().catch(() => "");
     console.error(`AI gateway failed [${response.status}]: ${body}`);
     if (response.status === 429) throw new Error("Limite de utilização da IA atingido. Tente novamente daqui a pouco.");
     if (response.status === 402) throw new Error("Créditos de IA esgotados no espaço de trabalho.");
     throw new Error(`A análise falhou [${response.status}].`);
   }
 
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content ?? "{}";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let content = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const data = trimmed.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const chunk = JSON.parse(data) as {
+          choices?: Array<{ delta?: { content?: string } }>;
+        };
+        content += chunk.choices?.[0]?.delta?.content ?? "";
+      } catch {
+        // partial chunk, ignore
+      }
+    }
+  }
+
+  if (!content.trim()) throw new Error("A IA não devolveu resultados. Tente novamente.");
+
   try {
     return JSON.parse(content) as Record<string, unknown>;
   } catch {
