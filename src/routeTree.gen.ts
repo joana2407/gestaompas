@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MateriasPrimasRouteImport } from './routes/materias-primas'
+import { Route as NovaAnaliseRouteImport } from './routes/nova-analise'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MateriasPrimasRoute = MateriasPrimasRouteImport.update({
+  id: '/materias-primas',
+  path: '/materias-primas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NovaAnaliseRoute = NovaAnaliseRouteImport.update({
+  id: '/nova-analise',
+  path: '/nova-analise',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/materias-primas': typeof MateriasPrimasRoute
+  '/nova-analise': typeof NovaAnaliseRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/materias-primas': typeof MateriasPrimasRoute
+  '/nova-analise': typeof NovaAnaliseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/materias-primas': typeof MateriasPrimasRoute
+  '/nova-analise': typeof NovaAnaliseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/materias-primas' | '/nova-analise'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/materias-primas' | '/nova-analise'
+  id: '__root__' | '/' | '/materias-primas' | '/nova-analise'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MateriasPrimasRoute: typeof MateriasPrimasRoute
+  NovaAnaliseRoute: typeof NovaAnaliseRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/materias-primas': {
+      id: '/materias-primas'
+      path: '/materias-primas'
+      fullPath: '/materias-primas'
+      preLoaderRoute: typeof MateriasPrimasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nova-analise': {
+      id: '/nova-analise'
+      path: '/nova-analise'
+      fullPath: '/nova-analise'
+      preLoaderRoute: typeof NovaAnaliseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MateriasPrimasRoute: MateriasPrimasRoute,
+  NovaAnaliseRoute: NovaAnaliseRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
