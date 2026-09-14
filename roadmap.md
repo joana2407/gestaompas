@@ -7,3 +7,4 @@
 - [ ] Relatório estruturado (sumário, MP em risco, razão, recomendações, rastreabilidade)
 - [ ] Dashboard por semana com histórico de relatórios guardados
 - [ ] Publicar site com acesso aberto a toda a equipa
+- [ ] Receber o ficheiro Excel de MP do utilizador e validar a importação
