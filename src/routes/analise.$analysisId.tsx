@@ -7,7 +7,6 @@ import { ArrowLeft, CheckCircle2, Download, Lock, Unlock } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { analysisDetailQuery } from "@/lib/queries";
