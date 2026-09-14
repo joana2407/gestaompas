@@ -168,19 +168,17 @@ function Report() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Select
+                      <select
                         value={finding.risk_level}
-                        onValueChange={(value) => void updateFinding(finding.id, { risk_level: value })}
+                        onChange={(event) => void updateFinding(finding.id, { risk_level: event.target.value })}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                        aria-label="Nível de risco"
                       >
-                        <SelectTrigger className="h-8 w-36 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ALTO">Risco alto</SelectItem>
-                          <SelectItem value="MEDIO">Risco médio</SelectItem>
-                          <SelectItem value="BAIXO">Risco baixo</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <option value="ALTO">Risco alto</option>
+                        <option value="MEDIO">Risco médio</option>
+                        <option value="BAIXO">Risco baixo</option>
+                      </select>
+
                       <Button
                         size="sm"
                         variant={finding.reviewed ? "default" : "outline"}
