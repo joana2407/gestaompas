@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { gateStatus } from "@/lib/gate.functions";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, FileSpreadsheet, Layers, Plus } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -24,6 +25,10 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  beforeLoad: async () => {
+    const { unlocked } = await gateStatus();
+    if (!unlocked) throw redirect({ to: "/entrar" });
+  },
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(analysesQuery),

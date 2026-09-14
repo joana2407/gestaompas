@@ -114,6 +114,8 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
+    const { requireUnlocked } = await import("./gate.server");
+    await requireUnlocked();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: materials, error: materialsError } = await supabaseAdmin

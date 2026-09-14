@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as MateriasPrimasRouteImport } from './routes/materias-primas'
 import { Route as NovaAnaliseRouteImport } from './routes/nova-analise'
 import { Route as AnaliseAnalysisIdRouteImport } from './routes/analise.$analysisId'
@@ -17,6 +18,11 @@ import { Route as AnaliseAnalysisIdRouteImport } from './routes/analise.$analysi
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarRoute = EntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MateriasPrimasRoute = MateriasPrimasRouteImport.update({
@@ -37,12 +43,14 @@ const AnaliseAnalysisIdRoute = AnaliseAnalysisIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/entrar': typeof EntrarRoute
   '/materias-primas': typeof MateriasPrimasRoute
   '/nova-analise': typeof NovaAnaliseRoute
   '/analise/$analysisId': typeof AnaliseAnalysisIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/entrar': typeof EntrarRoute
   '/materias-primas': typeof MateriasPrimasRoute
   '/nova-analise': typeof NovaAnaliseRoute
   '/analise/$analysisId': typeof AnaliseAnalysisIdRoute
@@ -50,18 +58,30 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/entrar': typeof EntrarRoute
   '/materias-primas': typeof MateriasPrimasRoute
   '/nova-analise': typeof NovaAnaliseRoute
   '/analise/$analysisId': typeof AnaliseAnalysisIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/materias-primas' | '/nova-analise' | '/analise/$analysisId'
+  fullPaths:
+    | '/'
+    | '/entrar'
+    | '/materias-primas'
+    | '/nova-analise'
+    | '/analise/$analysisId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/materias-primas' | '/nova-analise' | '/analise/$analysisId'
+  to:
+    | '/'
+    | '/entrar'
+    | '/materias-primas'
+    | '/nova-analise'
+    | '/analise/$analysisId'
   id:
     | '__root__'
     | '/'
+    | '/entrar'
     | '/materias-primas'
     | '/nova-analise'
     | '/analise/$analysisId'
@@ -69,6 +89,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EntrarRoute: typeof EntrarRoute
   MateriasPrimasRoute: typeof MateriasPrimasRoute
   NovaAnaliseRoute: typeof NovaAnaliseRoute
   AnaliseAnalysisIdRoute: typeof AnaliseAnalysisIdRoute
@@ -81,6 +102,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar': {
+      id: '/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof EntrarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/materias-primas': {
@@ -109,6 +137,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EntrarRoute: EntrarRoute,
   MateriasPrimasRoute: MateriasPrimasRoute,
   NovaAnaliseRoute: NovaAnaliseRoute,
   AnaliseAnalysisIdRoute: AnaliseAnalysisIdRoute,

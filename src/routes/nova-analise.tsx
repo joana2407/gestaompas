@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { gateStatus } from "@/lib/gate.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -27,6 +28,10 @@ export const Route = createFileRoute("/nova-analise")({
       { property: "og:description", content: "Upload dos alertas da semana e classificação automática de risco por MP." },
     ],
   }),
+  beforeLoad: async () => {
+    const { unlocked } = await gateStatus();
+    if (!unlocked) throw redirect({ to: "/entrar" });
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(materialsQuery),
   component: NewAnalysis,
 });

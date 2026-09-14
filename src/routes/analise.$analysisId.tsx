@@ -1,4 +1,5 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { gateStatus } from "@/lib/gate.functions";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,7 +9,7 @@ import { AppShell } from "@/components/AppShell";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { setAnalysisStatus, updateFinding as updateFindingFn } from "@/lib/data.functions";
 import { analysisDetailQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/analise/$analysisId")({
@@ -24,6 +25,10 @@ export const Route = createFileRoute("/analise/$analysisId")({
       { property: "og:description", content: "MP afetadas, nível de risco, rastreabilidade e recomendações de ação." },
     ],
   }),
+  beforeLoad: async () => {
+    const { unlocked } = await gateStatus();
+    if (!unlocked) throw redirect({ to: "/entrar" });
+  },
   loader: async ({ context, params }) => {
     const data = await context.queryClient.ensureQueryData(analysisDetailQuery(params.analysisId));
     if (!data.analysis) throw notFound();
@@ -47,27 +52,28 @@ function Report() {
 
   async function updateFinding(
     id: string,
-    patch: { risk_level?: string; reviewed?: boolean; review_note?: string | null },
+    patch: { risk_level?: "ALTO" | "MEDIO" | "BAIXO"; reviewed?: boolean; review_note?: string | null },
   ) {
     setSavingId(id);
-    const { error } = await supabase.from("risk_findings").update(patch).eq("id", id);
-    setSavingId(null);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await updateFindingFn({ data: { id, ...patch } });
+      await queryClient.invalidateQueries();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSavingId(null);
     }
-    await queryClient.invalidateQueries();
   }
 
   async function toggleStatus() {
     const next = analysis.status === "fechado" ? "rascunho" : "fechado";
-    const { error } = await supabase.from("analyses").update({ status: next }).eq("id", analysis.id);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await setAnalysisStatus({ data: { id: analysis.id, status: next } });
+      await queryClient.invalidateQueries();
+      toast.success(next === "fechado" ? "Relatório fechado." : "Relatório reaberto para revisão.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
     }
-    await queryClient.invalidateQueries();
-    toast.success(next === "fechado" ? "Relatório fechado." : "Relatório reaberto para revisão.");
   }
 
   function exportReport() {
@@ -169,7 +175,11 @@ function Report() {
                     <div className="flex items-center gap-2">
                       <select
                         value={finding.risk_level}
-                        onChange={(event) => void updateFinding(finding.id, { risk_level: event.target.value })}
+                        onChange={(event) =>
+                          void updateFinding(finding.id, {
+                            risk_level: event.target.value as "ALTO" | "MEDIO" | "BAIXO",
+                          })
+                        }
                         className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                         aria-label="Nível de risco"
                       >
