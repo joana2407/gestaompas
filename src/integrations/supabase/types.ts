@@ -14,7 +14,245 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          created_at: string
+          id: string
+          source_filename: string | null
+          status: string
+          summary: string | null
+          total_alerts: number
+          total_at_risk: number
+          updated_at: string
+          week_label: string
+          week_start: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_filename?: string | null
+          status?: string
+          summary?: string | null
+          total_alerts?: number
+          total_at_risk?: number
+          updated_at?: string
+          week_label: string
+          week_start?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_filename?: string | null
+          status?: string
+          summary?: string | null
+          total_alerts?: number
+          total_at_risk?: number
+          updated_at?: string
+          week_label?: string
+          week_start?: string | null
+        }
+        Relationships: []
+      }
+      rasff_alerts: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          hazard: string | null
+          hazard_type: string | null
+          id: string
+          manufacturer: string | null
+          notified_on: string | null
+          origin_country: string | null
+          product: string
+          raw_text: string | null
+          reference: string | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          hazard?: string | null
+          hazard_type?: string | null
+          id?: string
+          manufacturer?: string | null
+          notified_on?: string | null
+          origin_country?: string | null
+          product: string
+          raw_text?: string | null
+          reference?: string | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          hazard?: string | null
+          hazard_type?: string | null
+          id?: string
+          manufacturer?: string | null
+          notified_on?: string | null
+          origin_country?: string | null
+          product?: string
+          raw_text?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rasff_alerts_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_material_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          origin: string | null
+          raw_material_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          origin?: string | null
+          raw_material_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          origin?: string | null
+          raw_material_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_material_ingredients_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_materials: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          origins: string[]
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          notes?: string | null
+          origins?: string[]
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          origins?: string[]
+          supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      risk_findings: {
+        Row: {
+          alert_id: string | null
+          analysis_id: string
+          created_at: string
+          id: string
+          ingredient_name: string | null
+          raw_material_id: string | null
+          raw_material_kind: string | null
+          raw_material_name: string
+          reason: string | null
+          recommendation: string | null
+          review_note: string | null
+          reviewed: boolean
+          risk_level: string
+          risk_type: string | null
+          traceability: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_id?: string | null
+          analysis_id: string
+          created_at?: string
+          id?: string
+          ingredient_name?: string | null
+          raw_material_id?: string | null
+          raw_material_kind?: string | null
+          raw_material_name: string
+          reason?: string | null
+          recommendation?: string | null
+          review_note?: string | null
+          reviewed?: boolean
+          risk_level: string
+          risk_type?: string | null
+          traceability?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_id?: string | null
+          analysis_id?: string
+          created_at?: string
+          id?: string
+          ingredient_name?: string | null
+          raw_material_id?: string | null
+          raw_material_kind?: string | null
+          raw_material_name?: string
+          reason?: string | null
+          recommendation?: string | null
+          review_note?: string | null
+          reviewed?: boolean
+          risk_level?: string
+          risk_type?: string | null
+          traceability?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_findings_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "rasff_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_findings_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_findings_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
