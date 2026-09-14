@@ -124,22 +124,31 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       throw new Error("Importe primeiro o inventário de matérias-primas antes de correr a análise.");
     }
 
-    const extraction = await askAI(
-      [
-        "És especialista em segurança alimentar e analisas notificações RASFF.",
-        "Extrai TODOS os alertas do documento fornecido.",
-        'Responde apenas JSON: {"alerts":[{"reference","product","hazard","hazard_type","origin_country","manufacturer","notified_on","raw_text"}]}.',
-        "hazard_type deve ser um de: alergénio, microbiológico, químico, corpo estranho, fraude, radiação, outro.",
-        "notified_on em formato YYYY-MM-DD ou null. Escreve em português.",
-      ].join(" "),
-      data.text.slice(0, 120000),
-    );
+    const extractionSystem = [
+      "És especialista em segurança alimentar e analisas notificações RASFF.",
+      "Extrai TODOS os alertas do documento fornecido.",
+      'Responde apenas JSON: {"alerts":[{"reference","product","hazard","hazard_type","origin_country","manufacturer","notified_on","raw_text"}]}.',
+      "hazard_type deve ser um de: alergénio, microbiológico, químico, corpo estranho, fraude, radiação, outro.",
+      "notified_on em formato YYYY-MM-DD ou null. Escreve em português.",
+    ].join(" ");
 
-    const alerts = z
-      .array(alertSchema)
-      .catch([])
-      .parse(extraction["alerts"] ?? [])
-      .filter((a) => a.product && a.product.trim().length > 1);
+    // Split long listings so each model call stays short enough to finish.
+    const textChunks: string[] = [];
+    const full = data.text.slice(0, 200000);
+    const CHUNK = 25000;
+    for (let i = 0; i < full.length; i += CHUNK) textChunks.push(full.slice(i, i + CHUNK));
+
+    const alerts: z.infer<typeof alertSchema>[] = [];
+    for (const chunk of textChunks) {
+      const extraction = await askAI(extractionSystem, chunk);
+      alerts.push(
+        ...z
+          .array(alertSchema)
+          .catch([])
+          .parse(extraction["alerts"] ?? [])
+          .filter((a) => a.product && a.product.trim().length > 1),
+      );
+    }
 
     if (alerts.length === 0) throw new Error("Não foi possível identificar alertas no documento enviado.");
 
