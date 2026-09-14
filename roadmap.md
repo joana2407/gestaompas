@@ -1,10 +1,11 @@
-# Roadmap — Análise RASFF vs Matérias-Primas
+# Vigilância RASFF · BRC
 
-- [ ] Ativar Lovable Cloud (base de dados para MP e relatórios)
-- [ ] Importar inventário de MP a partir de Excel (MP simples e compostas com ingredientes/origens)
-- [ ] Upload semanal de alertas RASFF (PDF/Excel/CSV) e extração dos alertas
-- [ ] Análise automática por IA com classificação Alto/Médio/Baixo e revisão manual
-- [ ] Relatório estruturado (sumário, MP em risco, razão, recomendações, rastreabilidade)
-- [ ] Dashboard por semana com histórico de relatórios guardados
-- [ ] Publicar site com acesso aberto a toda a equipa
-- [ ] Receber o ficheiro Excel de MP do utilizador e validar a importação
+- [x] Base de dados (MP, ingredientes, análises, alertas, findings)
+- [x] Importação do inventário a partir do Excel de avaliação de riscos (1 aba = 1 MP)
+- [x] Edição manual de ingredientes por MP
+- [x] Upload semanal de alertas RASFF (PDF/Excel/CSV/texto)
+- [x] Análise automática por IA com risco direto, indireto e por origem
+- [x] Relatório estruturado com sumário, razão, rastreabilidade e ações
+- [x] Revisão manual do nível de risco, notas e fecho do relatório
+- [x] Dashboard com histórico semanal e evolução do risco
+- [ ] Publicar o site para a equipa (ação do utilizador)
