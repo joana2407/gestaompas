@@ -22,6 +22,16 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await lockSite();
+    await navigate({ to: "/entrar", replace: true });
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/80 backdrop-blur">
@@ -43,6 +53,13 @@ export function AppShell({
                 {item.label}
               </Link>
             ))}
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="ml-1 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <LogOut className="size-4" /> Sair
+            </button>
           </nav>
         </div>
       </header>
