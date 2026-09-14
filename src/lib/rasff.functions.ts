@@ -162,25 +162,33 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       ingredientes: (m.raw_material_ingredients ?? []).map((i) => ({ nome: i.name, origem: i.origin })),
     }));
 
-    const assessment = await askAI(
-      [
-        "És auditor de segurança alimentar numa empresa de panificação e pastelaria certificada BRC Food.",
-        "Cruza os alertas RASFF com o inventário de matérias-primas (MP) e devolve apenas as MP com risco real.",
-        "Regras de classificação:",
-        "ALTO: a MP ou um ingrediente componente é o produto do alerta, ou provém da mesma origem/fabricante do alerta.",
-        "MEDIO: a origem geográfica coincide e o tipo de produto é similar, mas a confirmação é incerta.",
-        "BAIXO: a origem coincide mas o tipo de produto ou fabricante é claramente diferente.",
-        "risk_type deve ser: direto, indireto ou origem.",
-        "traceability deve indicar se a MP é simples ou composta e se o risco vem da própria MP ou de um ingrediente.",
-        "recommendation deve ser acionável (verificação com fornecedor, suspensão de uso, re-teste, substituição, pedido de COA, etc.).",
-        'Responde apenas JSON: {"summary":"sumário executivo em português","findings":[{"alert_reference","raw_material_code","raw_material_name","raw_material_kind","ingredient_name","risk_level","risk_type","reason","recommendation","traceability"}]}',
-        "Escreve tudo em português de Portugal. Não inventes MP que não estejam no inventário.",
-      ].join(" "),
-      JSON.stringify({ alertas: alerts, inventario: inventoryForAI }).slice(0, 200000),
-    );
+    const assessmentSystem = [
+      "És auditor de segurança alimentar numa empresa de panificação e pastelaria certificada BRC Food.",
+      "Cruza os alertas RASFF com o inventário de matérias-primas (MP) e devolve apenas as MP com risco real.",
+      "Regras de classificação:",
+      "ALTO: a MP ou um ingrediente componente é o produto do alerta, ou provém da mesma origem/fabricante do alerta.",
+      "MEDIO: a origem geográfica coincide e o tipo de produto é similar, mas a confirmação é incerta.",
+      "BAIXO: a origem coincide mas o tipo de produto ou fabricante é claramente diferente.",
+      "risk_type deve ser: direto, indireto ou origem.",
+      "traceability deve indicar se a MP é simples ou composta e se o risco vem da própria MP ou de um ingrediente.",
+      "recommendation deve ser acionável (verificação com fornecedor, suspensão de uso, re-teste, substituição, pedido de COA, etc.).",
+      'Responde apenas JSON: {"summary":"sumário executivo em português","findings":[{"alert_reference","raw_material_code","raw_material_name","raw_material_kind","ingredient_name","risk_level","risk_type","reason","recommendation","traceability"}]}',
+      "Escreve tudo em português de Portugal. Não inventes MP que não estejam no inventário.",
+    ].join(" ");
 
-    const findings = z.array(findingSchema).catch([]).parse(assessment["findings"] ?? []);
-    const summary = typeof assessment["summary"] === "string" ? (assessment["summary"] as string) : null;
+    const findings: z.infer<typeof findingSchema>[] = [];
+    const summaries: string[] = [];
+    const BATCH = 20;
+    for (let i = 0; i < alerts.length; i += BATCH) {
+      const batch = alerts.slice(i, i + BATCH);
+      const assessment = await askAI(
+        assessmentSystem,
+        JSON.stringify({ alertas: batch, inventario: inventoryForAI }).slice(0, 150000),
+      );
+      findings.push(...z.array(findingSchema).catch([]).parse(assessment["findings"] ?? []));
+      if (typeof assessment["summary"] === "string") summaries.push(assessment["summary"] as string);
+    }
+    const summary = summaries.length > 0 ? summaries.join("\n\n") : null;
 
     const { data: analysis, error: analysisError } = await supabaseAdmin
       .from("analyses")
