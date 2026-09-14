@@ -80,7 +80,6 @@ export async function parseInventoryWorkbook(file: File): Promise<ParsedMaterial
     const nameRow = grid[labelRow] ?? [];
     const originRow = grid[labelRow + 1] ?? [];
     const ingredientRow = grid[labelRow + 2] ?? [];
-    const ingredientLabel = clean(ingredientRow[0]).toLowerCase();
 
     let riskLevel: string | null = null;
     let supplier: string | null = null;
@@ -109,7 +108,7 @@ export async function parseInventoryWorkbook(file: File): Promise<ParsedMaterial
       const ingredients: ParsedIngredient[] = [];
       const extraOrigins: string[] = [];
 
-      if (ingredientText && !/^n\.?a\.?$/i.test(ingredientText) && !/origem/i.test(ingredientLabel + "x") === false) {
+      if (ingredientText && !/^n\.?a\.?$/i.test(ingredientText)) {
         for (const item of splitList(ingredientText)) {
           if (isCountry(item)) extraOrigins.push(item);
           else ingredients.push({ name: item, origin: null });
