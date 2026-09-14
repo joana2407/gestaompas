@@ -59,12 +59,12 @@ function Unlock() {
         </span>
         <h1 className="mt-4 text-xl font-bold">Vigilância RASFF · BRC</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Área reservada à equipa de qualidade. Introduza o PIN de acesso.
+          Área reservada à equipa de qualidade. Introduza o seu PIN pessoal.
         </p>
 
         <form onSubmit={submit} className="mt-6 grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="pin">PIN de acesso</Label>
+            <Label htmlFor="pin">PIN pessoal</Label>
             <Input
               id="pin"
               type="password"

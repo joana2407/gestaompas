@@ -1,9 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { lockSite } from "@/lib/gate.functions";
+import { gateStatus, lockSite } from "@/lib/gate.functions";
 
 const NAV = [
   { to: "/", label: "Dashboard" },
@@ -24,6 +24,8 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: gate } = useQuery({ queryKey: ["gate_status"], queryFn: () => gateStatus() });
+  const user = gate?.user ?? null;
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -53,6 +55,12 @@ export function AppShell({
                 {item.label}
               </Link>
             ))}
+            {user ? (
+              <span className="ml-2 hidden text-right leading-tight sm:block">
+                <span className="block text-xs font-semibold text-foreground">{user.name}</span>
+                {user.role ? <span className="block text-[11px] text-muted-foreground">{user.role}</span> : null}
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={() => void signOut()}

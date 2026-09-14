@@ -2,7 +2,22 @@ import { redirect } from "@tanstack/react-router";
 import { useSession } from "@tanstack/react-start/server";
 import { createHash, timingSafeEqual } from "node:crypto";
 
-type GateSession = { unlocked?: boolean };
+type GateSession = { unlocked?: boolean; name?: string; role?: string };
+
+export type TeamMember = { pin: string; name: string; role: string };
+
+/** Personal PINs, one per quality-team member. */
+export function teamMembers(): TeamMember[] {
+  const raw = process.env["TEAM_PINS"];
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as TeamMember[];
+    return Array.isArray(parsed) ? parsed.filter((m) => m?.pin && m?.name) : [];
+  } catch {
+    console.error("TEAM_PINS não é um JSON válido.");
+    return [];
+  }
+}
 
 function sessionConfig() {
   const password = process.env["SESSION_SECRET"];
@@ -22,6 +37,12 @@ export async function gateSession() {
 export async function isUnlocked(): Promise<boolean> {
   const session = await gateSession();
   return session.data.unlocked === true;
+}
+
+export async function currentUser(): Promise<{ name: string; role: string } | null> {
+  const session = await gateSession();
+  if (session.data.unlocked !== true) return null;
+  return { name: session.data.name ?? "Equipa Qualidade", role: session.data.role ?? "" };
 }
 
 /** Throws a redirect to the PIN screen unless this browser has unlocked the site. */

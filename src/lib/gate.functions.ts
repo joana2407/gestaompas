@@ -4,15 +4,24 @@ import { z } from "zod";
 export const unlockSite = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ pin: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
-    const { gateSession, pinMatches } = await import("./gate.server");
-    const expected = process.env["SITE_PIN"];
-    if (!expected) throw new Error("O PIN de acesso não está configurado.");
+    const { gateSession, pinMatches, teamMembers } = await import("./gate.server");
 
-    if (!pinMatches(data.pin, expected)) return { ok: false as const };
+    const member = teamMembers().find((m) => pinMatches(data.pin, m.pin));
+    if (member) {
+      const session = await gateSession();
+      await session.update({ unlocked: true, name: member.name, role: member.role });
+      return { ok: true as const, name: member.name };
+    }
 
-    const session = await gateSession();
-    await session.update({ unlocked: true });
-    return { ok: true as const };
+    // Shared fallback PIN, kept for the team while personal PINs roll out.
+    const shared = process.env["SITE_PIN"];
+    if (shared && pinMatches(data.pin, shared)) {
+      const session = await gateSession();
+      await session.update({ unlocked: true, name: "Equipa Qualidade", role: "" });
+      return { ok: true as const, name: "Equipa Qualidade" };
+    }
+
+    return { ok: false as const };
   });
 
 export const lockSite = createServerFn({ method: "POST" }).handler(async () => {
@@ -23,6 +32,6 @@ export const lockSite = createServerFn({ method: "POST" }).handler(async () => {
 });
 
 export const gateStatus = createServerFn({ method: "GET" }).handler(async () => {
-  const { isUnlocked } = await import("./gate.server");
-  return { unlocked: await isUnlocked() };
+  const { isUnlocked, currentUser } = await import("./gate.server");
+  return { unlocked: await isUnlocked(), user: await currentUser() };
 });
