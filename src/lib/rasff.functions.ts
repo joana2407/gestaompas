@@ -196,31 +196,35 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       "Escreve tudo em português de Portugal. Não inventes MP que não estejam no inventário.",
     ].join(" ");
 
-    // Pre-screen deterministically: only alerts that touch an inventory
-    // material, ingredient or origin go to the model, keeping weekly runs fast.
-    const tokens = new Set<string>();
-    for (const m of materials) {
-      for (const word of normalizeText(m.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
-      for (const origin of m.origins ?? []) {
-        const o = normalizeText(origin).trim();
-        if (o.length >= 4) tokens.add(o);
-      }
-      for (const ing of m.raw_material_ingredients ?? []) {
-        for (const word of normalizeText(ing.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
-        if (ing.origin) {
-          const o = normalizeText(ing.origin).trim();
+    // Very long listings get narrowed to alerts that literally touch the
+    // inventory; normal weekly volumes are always fully assessed by the model.
+    let relevant = alerts;
+    if (alerts.length > 120) {
+      const tokens = new Set<string>();
+      for (const m of materials) {
+        for (const word of normalizeText(m.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
+        for (const origin of m.origins ?? []) {
+          const o = normalizeText(origin).trim();
           if (o.length >= 4) tokens.add(o);
         }
+        for (const ing of m.raw_material_ingredients ?? []) {
+          for (const word of normalizeText(ing.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
+          if (ing.origin) {
+            const o = normalizeText(ing.origin).trim();
+            if (o.length >= 4) tokens.add(o);
+          }
+        }
       }
+      const matched = alerts.filter((a) => {
+        const haystack = normalizeText(
+          [a.product, a.hazard, a.origin_country, a.manufacturer, a.raw_text].filter(Boolean).join(" | "),
+        );
+        for (const token of tokens) if (haystack.includes(token)) return true;
+        return false;
+      });
+      if (matched.length >= 20) relevant = matched;
     }
 
-    const relevant = alerts.filter((a) => {
-      const haystack = normalizeText(
-        [a.product, a.hazard, a.origin_country, a.manufacturer, a.raw_text].filter(Boolean).join(" | "),
-      );
-      for (const token of tokens) if (haystack.includes(token)) return true;
-      return false;
-    });
 
     const findings: z.infer<typeof findingSchema>[] = [];
     const summaries: string[] = [];
