@@ -114,6 +114,39 @@ export const replaceInventory = createServerFn({ method: "POST" })
     return { imported: data.materials.length };
   });
 
+export const createMaterial = createServerFn({ method: "POST" })
+  .inputValidator((data) => materialInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await gate();
+    const { data: inserted, error } = await db
+      .from("raw_materials")
+      .insert({
+        code: data.code ?? null,
+        name: data.name,
+        category: data.category ?? null,
+        kind: data.ingredients.length > 1 ? "composta" : data.kind,
+        origins: data.origins,
+        supplier: data.supplier ?? null,
+        notes: data.notes ?? null,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    if (data.ingredients.length > 0) {
+      const { error: ingredientError } = await db.from("raw_material_ingredients").insert(
+        data.ingredients.map((i) => ({
+          raw_material_id: inserted.id,
+          name: i.name,
+          origin: i.origin ?? null,
+        })),
+      );
+      if (ingredientError) throw new Error(ingredientError.message);
+    }
+
+    return { id: inserted.id };
+  });
+
 export const setIngredients = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
