@@ -45,6 +45,21 @@ const supplierInput = z.object({
   pending_notes: z.string().nullish(),
 });
 
+function normalizeSupplier(input: z.infer<typeof supplierInput>) {
+  return {
+    name: input.name,
+    code: input.code ?? null,
+    commercial_name: input.commercial_name ?? null,
+    commercial_email: input.commercial_email ?? null,
+    commercial_phone: input.commercial_phone ?? null,
+    quality_name: input.quality_name ?? null,
+    quality_email: input.quality_email ?? null,
+    quality_phone: input.quality_phone ?? null,
+    status: input.status,
+    pending_notes: input.pending_notes ?? null,
+  };
+}
+
 const SUPPLIER_COLS =
   "id, name, code, commercial_name, commercial_email, commercial_phone, quality_name, quality_email, quality_phone, status, pending_notes, active";
 
@@ -69,7 +84,7 @@ export const createSupplier = createServerFn({ method: "POST" })
   .inputValidator((data) => supplierInput.parse(data))
   .handler(async ({ data }) => {
     const db = await gate();
-    const { data: inserted, error } = await db.from("suppliers").insert(data).select("id").single();
+    const { data: inserted, error } = await db.from("suppliers").insert(normalizeSupplier(data)).select("id").single();
     if (error) throw new Error(error.message);
     return { id: inserted.id };
   });
@@ -79,7 +94,7 @@ export const updateSupplier = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await gate();
     const { id, ...patch } = data;
-    const { error } = await db.from("suppliers").update(patch).eq("id", id);
+    const { error } = await db.from("suppliers").update(normalizeSupplier(patch)).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
@@ -108,7 +123,7 @@ export const getSupplierDetail = createServerFn({ method: "GET" })
       db
         .from("documents")
         .select(
-          "id, raw_material_id, doc_type, title, description, version, issued_on, expires_on, storage_path, original_filename, notes, uploaded_by, archived, created_at",
+          "id, supplier_id, raw_material_id, doc_type, title, description, version, issued_on, expires_on, storage_path, original_filename, notes, uploaded_by, archived, created_at",
         )
         .eq("supplier_id", data.supplierId)
         .order("created_at", { ascending: false }),
@@ -178,7 +193,7 @@ export const getMaterialDetail = createServerFn({ method: "GET" })
       db
         .from("documents")
         .select(
-          "id, supplier_id, doc_type, title, description, version, issued_on, expires_on, storage_path, original_filename, notes, uploaded_by, archived, created_at, suppliers(name)",
+          "id, supplier_id, raw_material_id, doc_type, title, description, version, issued_on, expires_on, storage_path, original_filename, notes, uploaded_by, archived, created_at, suppliers(name)",
         )
         .eq("raw_material_id", data.materialId)
         .order("created_at", { ascending: false }),

@@ -13,7 +13,7 @@ import { fileToBase64 } from "@/lib/file-base64";
 
 export type DocumentRow = {
   id: string;
-  supplier_id: string | null;
+  supplier_id?: string | null;
   raw_material_id?: string | null;
   doc_type: string;
   title: string;
@@ -42,8 +42,8 @@ export function DocumentsPanel({
   documents: DocumentRow[];
   suppliers: { id: string; name: string }[];
   materials: { id: string; name: string }[];
-  fixedSupplierId?: string;
-  fixedMaterialId?: string;
+  fixedSupplierId?: string | undefined;
+  fixedMaterialId?: string | undefined;
   title?: string;
 }) {
   const [showArchived, setShowArchived] = useState(false);
@@ -186,9 +186,9 @@ function DocumentForm({
 }: {
   suppliers: { id: string; name: string }[];
   materials: { id: string; name: string }[];
-  fixedSupplierId?: string;
-  fixedMaterialId?: string;
-  supersedes?: DocumentRow;
+  fixedSupplierId?: string | undefined;
+  fixedMaterialId?: string | undefined;
+  supersedes?: DocumentRow | undefined;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();

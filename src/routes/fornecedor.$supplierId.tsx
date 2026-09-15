@@ -62,7 +62,7 @@ function SupplierDetail() {
   return (
     <AppShell
       title={supplier.name}
-      description={supplier.code ? `Código ${supplier.code}` : undefined}
+      description={supplier.code ? `Código ${supplier.code}` : ""}
       actions={
         <div className="flex gap-2">
           <Button variant="ghost" asChild>
