@@ -11,3 +11,9 @@
 - [ ] Publicar o site para a equipa (ação do utilizador)
 
 - [x] Importar ficheiro RASFF anual estruturado (RASFF_2026.xlsx) e separar automaticamente por semana, um relatorio por semana
+
+## Gestão documental MP + fornecedores (BRC/AOCS)
+- [x] Base de dados: fábricas, fornecedores, ligações MP↔fábrica e MP↔fornecedor, documentos, alergénios
+- [ ] Páginas de fornecedores, detalhe de MP, fábricas e documentação
+- [ ] Painel de conformidade e sinalizações
+- Não incorporar do projeto anexado: análise RASFF, Food Fraud e receções (a vigilância RASFF existente mantém-se como está)
