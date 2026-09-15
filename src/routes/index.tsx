@@ -7,7 +7,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { AppShell } from "@/components/AppShell";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
-import { analysesQuery, findingsOverviewQuery, materialsQuery } from "@/lib/queries";
+import { analysesQuery, catalogQuery, documentsQuery, findingsOverviewQuery, materialsQuery } from "@/lib/queries";
+import { ALERGENIOS_CRITICOS, validityState } from "@/lib/domain";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,6 +35,8 @@ export const Route = createFileRoute("/")({
       context.queryClient.ensureQueryData(analysesQuery),
       context.queryClient.ensureQueryData(findingsOverviewQuery),
       context.queryClient.ensureQueryData(materialsQuery),
+      context.queryClient.ensureQueryData(catalogQuery),
+      context.queryClient.ensureQueryData(documentsQuery),
     ]);
   },
   component: Dashboard,
@@ -53,6 +56,8 @@ function Dashboard() {
   const { data: analyses } = useSuspenseQuery(analysesQuery);
   const { data: findings } = useSuspenseQuery(findingsOverviewQuery);
   const { data: materials } = useSuspenseQuery(materialsQuery);
+  const { data: catalog } = useSuspenseQuery(catalogQuery);
+  const { data: docs } = useSuspenseQuery(documentsQuery);
 
   const count = (level: string) => findings.filter((f) => f.risk_level === level).length;
 
@@ -69,10 +74,27 @@ function Dashboard() {
       };
     });
 
+  const active = docs.documents.filter((d) => !d.archived);
+  const expired = active.filter((d) => validityState(d.expires_on) === "expirado").length;
+  const expiring = active.filter((d) => ["expira_30", "expira_60"].includes(validityState(d.expires_on))).length;
+  const noFactory = catalog.materials.filter(
+    (m) => !catalog.materialFactories.some((mf) => mf.raw_material_id === m.id && mf.state !== "inativa"),
+  ).length;
+  const multiSupplier = catalog.materials.filter(
+    (m) => catalog.materialSuppliers.filter((ms) => ms.raw_material_id === m.id).length > 1,
+  ).length;
+  const noAllergens = catalog.materials.filter(
+    (m) => (m.allergens_formulation ?? []).length === 0 && (m.allergens_contamination ?? []).length === 0,
+  ).length;
+  const criticalAllergens = catalog.materials.filter((m) =>
+    (m.allergens_formulation ?? []).some((a) => ALERGENIOS_CRITICOS.includes(a as never)),
+  ).length;
+  const pendingSuppliers = catalog.suppliers.filter((s) => s.status !== "completo").length;
+
   return (
     <AppShell
-      title="Vigilância RASFF"
-      description="Cruzamento semanal dos alertas RASFF com o inventário de matérias-primas e classificação de risco para a equipa de qualidade."
+      title="Gestão de matérias-primas e fornecedores"
+      description="Matérias-primas por fábrica, fornecedores, alergénios e documentação, mais a vigilância semanal de alertas RASFF."
       actions={
         <div className="flex gap-2">
           <Button asChild variant="outline">
@@ -94,6 +116,33 @@ function Dashboard() {
         <Kpi label="Risco médio" value={count("MEDIO")} tone="text-medium-foreground" />
         <Kpi label="MP no inventário" value={materials.length} hint={`${materials.filter((m) => m.kind === "composta").length} compostas`} />
       </div>
+
+      <section className="panel mt-6 p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold">Conformidade documental e alergénios</h2>
+          <div className="flex gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to="/documentos">Documentação</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/fornecedores">Fornecedores</Link>
+            </Button>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Kpi label="Documentos expirados" value={expired} tone={expired > 0 ? "text-high" : ""} hint="Renovar antes da auditoria" />
+          <Kpi label="A expirar em 60 dias" value={expiring} tone={expiring > 0 ? "text-medium-foreground" : ""} />
+          <Kpi label="Fornecedores com documentação pendente" value={pendingSuppliers} />
+          <Kpi label="MP sem fábrica atribuída" value={noFactory} hint="Definir onde é utilizada" />
+          <Kpi label="MP com vários fornecedores" value={multiSupplier} hint="Confirmar equivalência de especificações" />
+          <Kpi
+            label="MP sem alergénios registados"
+            value={noAllergens}
+            tone={noAllergens > 0 ? "text-medium-foreground" : ""}
+            hint={`${criticalAllergens} MP com alergénio crítico declarado`}
+          />
+        </div>
+      </section>
 
       {chartData.length > 0 ? (
         <section className="panel mt-6 p-5">

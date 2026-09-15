@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { gateStatus } from "@/lib/gate.functions";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createMaterial, replaceInventory, setIngredients } from "@/lib/data.functions";
-import { materialsQuery } from "@/lib/queries";
+import { catalogQuery } from "@/lib/queries";
+import { AllergenTags } from "@/components/AllergenTags";
 import { parseInventoryWorkbook } from "@/lib/inventory-import";
 
 export const Route = createFileRoute("/materias-primas")({
@@ -30,12 +31,13 @@ export const Route = createFileRoute("/materias-primas")({
     const { unlocked } = await gateStatus();
     if (!unlocked) throw redirect({ to: "/entrar" });
   },
-  loader: ({ context }) => context.queryClient.ensureQueryData(materialsQuery),
+  loader: ({ context }) => context.queryClient.ensureQueryData(catalogQuery),
   component: Inventory,
 });
 
 function Inventory() {
-  const { data: materials } = useSuspenseQuery(materialsQuery);
+  const { data: catalog } = useSuspenseQuery(catalogQuery);
+  const materials = catalog.materials;
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
@@ -120,7 +122,15 @@ function Inventory() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((material) => (
-            <MaterialCard key={material.id} material={material} />
+            <MaterialCard
+              key={material.id}
+              material={material}
+              factories={catalog.materialFactories
+                .filter((mf) => mf.raw_material_id === material.id && mf.state !== "inativa")
+                .map((mf) => catalog.factories.find((f) => f.id === mf.factory_id)?.code ?? "")
+                .filter(Boolean)}
+              supplierCount={catalog.materialSuppliers.filter((ms) => ms.raw_material_id === material.id).length}
+            />
           ))}
         </div>
 
@@ -222,9 +232,19 @@ type Material = {
   supplier: string | null;
   notes: string | null;
   raw_material_ingredients: { id: string; name: string; origin: string | null }[] | null;
+  allergens_formulation: string[] | null;
+  allergens_contamination: string[] | null;
 };
 
-function MaterialCard({ material }: { material: Material }) {
+function MaterialCard({
+  material,
+  factories,
+  supplierCount,
+}: {
+  material: Material;
+  factories: string[];
+  supplierCount: number;
+}) {
   const queryClient = useQueryClient();
   const ingredients = material.raw_material_ingredients ?? [];
   const [editing, setEditing] = useState(false);
@@ -253,7 +273,11 @@ function MaterialCard({ material }: { material: Material }) {
     <article className="panel p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-base font-semibold">{material.name}</h2>
+          <h2 className="font-display text-base font-semibold">
+            <Link to="/materia-prima/$materialId" params={{ materialId: material.id }} className="hover:underline">
+              {material.name}
+            </Link>
+          </h2>
           <p className="text-xs text-muted-foreground">
             {material.code}
             {material.supplier ? ` · ${material.supplier}` : ""}
@@ -262,6 +286,24 @@ function MaterialCard({ material }: { material: Material }) {
         <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
           {material.kind === "composta" ? "Composta" : "Simples"}
         </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {factories.length > 0 ? (
+          <span className="rounded-md border border-border bg-secondary px-1.5 py-0.5 text-[11px] font-semibold">
+            {factories.join(" · ")}
+          </span>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">Sem fábrica atribuída</span>
+        )}
+        <span className={`text-[11px] ${supplierCount > 1 ? "font-semibold text-medium-foreground" : "text-muted-foreground"}`}>
+          {supplierCount} fornecedor(es)
+        </span>
+        <AllergenTags
+          formulation={material.allergens_formulation}
+          contamination={material.allergens_contamination}
+          empty="Alergénios não registados"
+        />
       </div>
 
       {material.origins.length > 0 ? (
