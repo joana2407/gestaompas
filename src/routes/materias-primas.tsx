@@ -74,27 +74,35 @@ function Inventory() {
       title="Inventário de matérias-primas"
       description="Cada aba do ficheiro de avaliação de riscos corresponde a uma matéria-prima. A importação substitui o inventário anterior."
       actions={
-        <label className="inline-flex">
-          <Button asChild disabled={busy}>
-            <span>
-              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-              Importar Excel
-            </span>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setAdding((v) => !v)}>
+            <Plus className="mr-2 size-4" />
+            Nova matéria-prima
           </Button>
-          <input
-            type="file"
-            accept=".xlsx,.xls,.xlsm,.csv"
-            className="hidden"
-            disabled={busy}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) void handleFile(file);
-            }}
-          />
-        </label>
+          <label className="inline-flex">
+            <Button asChild disabled={busy}>
+              <span>
+                {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
+                Importar Excel
+              </span>
+            </Button>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.xlsm,.csv"
+              className="hidden"
+              disabled={busy}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void handleFile(file);
+              }}
+            />
+          </label>
+        </div>
       }
     >
+      {adding ? <NewMaterialForm onClose={() => setAdding(false)} /> : null}
+
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
         <Input
