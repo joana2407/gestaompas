@@ -4,16 +4,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { FileUp, Loader2, Sparkles } from "lucide-react";
+import { FileUp, Loader2, Sparkles, CalendarRange } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { extractTextFromFile } from "@/lib/file-text";
+import { extractTextFromFile, readSpreadsheetRows } from "@/lib/file-text";
+import { groupRowsByWeek, looksStructured, type WeekBucket } from "@/lib/rasff-table";
 import { materialsQuery } from "@/lib/queries";
 import { runRasffAnalysis } from "@/lib/rasff.functions";
+
 
 export const Route = createFileRoute("/nova-analise")({
   head: () => ({
