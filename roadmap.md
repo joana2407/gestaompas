@@ -14,6 +14,6 @@
 
 ## Gestão documental MP + fornecedores (BRC/AOCS)
 - [x] Base de dados: fábricas, fornecedores, ligações MP↔fábrica e MP↔fornecedor, documentos, alergénios
-- [ ] Páginas de fornecedores, detalhe de MP, fábricas e documentação
-- [ ] Painel de conformidade e sinalizações
+- [x] Páginas de fornecedores, detalhe de MP, fábricas e documentação
+- [x] Painel de conformidade e sinalizações no dashboard
 - Não incorporar do projeto anexado: análise RASFF, Food Fraud e receções (a vigilância RASFF existente mantém-se como está)
