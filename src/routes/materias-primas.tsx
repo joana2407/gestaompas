@@ -3,12 +3,13 @@ import { gateStatus } from "@/lib/gate.functions";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, Upload } from "lucide-react";
+import { Loader2, Plus, Search, Upload } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { replaceInventory, setIngredients } from "@/lib/data.functions";
+import { Textarea } from "@/components/ui/textarea";
+import { createMaterial, replaceInventory, setIngredients } from "@/lib/data.functions";
 import { materialsQuery } from "@/lib/queries";
 import { parseInventoryWorkbook } from "@/lib/inventory-import";
 
@@ -38,6 +39,7 @@ function Inventory() {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
+  const [adding, setAdding] = useState(false);
 
   async function handleFile(file: File) {
     setBusy(true);
@@ -72,27 +74,35 @@ function Inventory() {
       title="Inventário de matérias-primas"
       description="Cada aba do ficheiro de avaliação de riscos corresponde a uma matéria-prima. A importação substitui o inventário anterior."
       actions={
-        <label className="inline-flex">
-          <Button asChild disabled={busy}>
-            <span>
-              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-              Importar Excel
-            </span>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setAdding((v) => !v)}>
+            <Plus className="mr-2 size-4" />
+            Nova matéria-prima
           </Button>
-          <input
-            type="file"
-            accept=".xlsx,.xls,.xlsm,.csv"
-            className="hidden"
-            disabled={busy}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) void handleFile(file);
-            }}
-          />
-        </label>
+          <label className="inline-flex">
+            <Button asChild disabled={busy}>
+              <span>
+                {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
+                Importar Excel
+              </span>
+            </Button>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.xlsm,.csv"
+              className="hidden"
+              disabled={busy}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void handleFile(file);
+              }}
+            />
+          </label>
+        </div>
       }
     >
+      {adding ? <NewMaterialForm onClose={() => setAdding(false)} /> : null}
+
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
         <Input
@@ -116,6 +126,90 @@ function Inventory() {
 
       )}
     </AppShell>
+  );
+}
+
+function NewMaterialForm({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [category, setCategory] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [origins, setOrigins] = useState("");
+  const [ingredients, setIngredients] = useState("");
+  const [notes, setNotes] = useState("");
+
+  async function submit() {
+    if (!name.trim()) {
+      toast.error("Indique o nome da matéria-prima.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const list = (value: string) =>
+        value
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean);
+      const ingredientNames = list(ingredients);
+      await createMaterial({
+        data: {
+          name: name.trim(),
+          code: code.trim() || null,
+          category: category.trim() || null,
+          kind: ingredientNames.length > 1 ? "composta" : "simples",
+          origins: list(origins),
+          supplier: supplier.trim() || null,
+          notes: notes.trim() || null,
+          ingredients: ingredientNames.map((n) => ({ name: n, origin: null })),
+        },
+      });
+      await queryClient.invalidateQueries();
+      toast.success("Matéria-prima adicionada.");
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="panel mb-4 p-4">
+      <h2 className="font-display mb-3 text-base font-semibold">Nova matéria-prima</h2>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da MP (obrigatório)" />
+        <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Código / referência" />
+        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Categoria" />
+        <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Fornecedor" />
+        <Input
+          value={origins}
+          onChange={(e) => setOrigins(e.target.value)}
+          placeholder="Origens separadas por vírgula (ex.: Portugal, Espanha)"
+        />
+        <Input
+          value={ingredients}
+          onChange={(e) => setIngredients(e.target.value)}
+          placeholder="Ingredientes separados por vírgula (deixe vazio se for simples)"
+        />
+      </div>
+      <Textarea
+        className="mt-3"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Observações"
+      />
+      <div className="mt-3 flex gap-2">
+        <Button disabled={saving} onClick={() => void submit()}>
+          {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+          Guardar
+        </Button>
+        <Button variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+      </div>
+    </section>
   );
 }
 
