@@ -196,11 +196,37 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       "Escreve tudo em português de Portugal. Não inventes MP que não estejam no inventário.",
     ].join(" ");
 
+    // Pre-screen deterministically: only alerts that touch an inventory
+    // material, ingredient or origin go to the model, keeping weekly runs fast.
+    const tokens = new Set<string>();
+    for (const m of materials) {
+      for (const word of normalizeText(m.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
+      for (const origin of m.origins ?? []) {
+        const o = normalizeText(origin).trim();
+        if (o.length >= 4) tokens.add(o);
+      }
+      for (const ing of m.raw_material_ingredients ?? []) {
+        for (const word of normalizeText(ing.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
+        if (ing.origin) {
+          const o = normalizeText(ing.origin).trim();
+          if (o.length >= 4) tokens.add(o);
+        }
+      }
+    }
+
+    const relevant = alerts.filter((a) => {
+      const haystack = normalizeText(
+        [a.product, a.hazard, a.origin_country, a.manufacturer, a.raw_text].filter(Boolean).join(" | "),
+      );
+      for (const token of tokens) if (haystack.includes(token)) return true;
+      return false;
+    });
+
     const findings: z.infer<typeof findingSchema>[] = [];
     const summaries: string[] = [];
     const BATCH = 20;
-    for (let i = 0; i < alerts.length; i += BATCH) {
-      const batch = alerts.slice(i, i + BATCH);
+    for (let i = 0; i < relevant.length; i += BATCH) {
+      const batch = relevant.slice(i, i + BATCH);
       const assessment = await askAI(
         assessmentSystem,
         JSON.stringify({ alertas: batch, inventario: inventoryForAI }).slice(0, 150000),
@@ -208,6 +234,7 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       findings.push(...z.array(findingSchema).catch([]).parse(assessment["findings"] ?? []));
       if (typeof assessment["summary"] === "string") summaries.push(assessment["summary"] as string);
     }
+
     const summary = summaries.length > 0 ? summaries.join("\n\n") : null;
 
     const { data: analysis, error: analysisError } = await supabaseAdmin
