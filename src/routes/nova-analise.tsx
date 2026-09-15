@@ -57,12 +57,32 @@ function NewAnalysis() {
   const [weekStart, setWeekStart] = useState("");
   const [filename, setFilename] = useState("");
   const [text, setText] = useState("");
+  const [weeks, setWeeks] = useState<WeekBucket[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [reading, setReading] = useState(false);
   const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState("");
 
   async function handleFile(file: File) {
     setReading(true);
+    setWeeks([]);
+    setSelected(new Set());
     try {
+      const name = file.name.toLowerCase();
+      if (/\.(xlsx|xls|xlsm|csv)$/.test(name)) {
+        const rows = await readSpreadsheetRows(file);
+        if (looksStructured(rows)) {
+          const buckets = groupRowsByWeek(rows);
+          if (buckets.length > 0) {
+            setWeeks(buckets);
+            setSelected(new Set(buckets.map((b) => b.key)));
+            setText("");
+            setFilename(file.name);
+            toast.success(`${rows.length} alertas lidos em ${buckets.length} semanas.`);
+            return;
+          }
+        }
+      }
       const extracted = await extractTextFromFile(file);
       if (extracted.trim().length < 20) {
         throw new Error("Não foi possível ler texto deste ficheiro. Se for um PDF digitalizado, cole o texto abaixo.");
@@ -84,6 +104,43 @@ function NewAnalysis() {
     }
     setRunning(true);
     try {
+      if (weeks.length > 0) {
+        const chosen = weeks.filter((w) => selected.has(w.key));
+        if (chosen.length === 0) {
+          toast.error("Selecione pelo menos uma semana.");
+          return;
+        }
+        let done = 0;
+        let atRisk = 0;
+        let lastId: string | null = null;
+        for (const week of chosen) {
+          setProgress(`${week.label} (${done + 1}/${chosen.length})`);
+          try {
+            const result = await analyse({
+              data: {
+                weekLabel: week.label,
+                weekStart: week.weekStart,
+                filename: filename || null,
+                alerts: week.alerts,
+              },
+            });
+            atRisk += result.atRisk;
+            lastId = result.analysisId;
+          } catch (error) {
+            toast.error(`${week.label}: ${error instanceof Error ? error.message : "falhou"}`);
+          }
+          done += 1;
+        }
+        await queryClient.invalidateQueries();
+        toast.success(`${done} semanas analisadas · ${atRisk} classificações de MP em risco.`);
+        if (chosen.length === 1 && lastId) {
+          void navigate({ to: "/analise/$analysisId", params: { analysisId: lastId } });
+        } else {
+          void navigate({ to: "/" });
+        }
+        return;
+      }
+
       const result = await analyse({
         data: { weekLabel, weekStart: weekStart || null, filename: filename || null, text },
       });
@@ -94,8 +151,19 @@ function NewAnalysis() {
       toast.error(error instanceof Error ? error.message : "A análise falhou.");
     } finally {
       setRunning(false);
+      setProgress("");
     }
   }
+
+  function toggleWeek(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
 
   return (
     <AppShell
