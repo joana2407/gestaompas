@@ -17,3 +17,4 @@
 - [x] Páginas de fornecedores, detalhe de MP, fábricas e documentação
 - [x] Painel de conformidade e sinalizações no dashboard
 - Não incorporar do projeto anexado: análise RASFF, Food Fraud e receções (a vigilância RASFF existente mantém-se como está)
+- [x] Recuperar a formatação visual original da Manus: menu lateral, barra superior, cartões e navegação móvel

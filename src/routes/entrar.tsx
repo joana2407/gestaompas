@@ -12,12 +12,12 @@ import { unlockSite } from "@/lib/gate.functions";
 export const Route = createFileRoute("/entrar")({
   head: () => ({
     meta: [
-      { title: "Acesso da equipa | Vigilância RASFF" },
+      { title: "Acesso da equipa | Gestão Matérias Primas A&S" },
       {
         name: "description",
-        content: "Introduza o PIN da equipa de qualidade para acedar aos relatórios de vigilância RASFF.",
+        content: "Acesso reservado à equipa de qualidade para gestão de matérias-primas, fornecedores e documentação.",
       },
-      { property: "og:title", content: "Acesso da equipa — Vigilância RASFF" },
+      { property: "og:title", content: "Acesso da equipa — Gestão Matérias Primas A&S" },
       { property: "og:description", content: "Área reservada à equipa de qualidade. Acesso protegido por PIN." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -53,11 +53,11 @@ function Unlock() {
 
   return (
     <div className="grid min-h-screen place-items-center bg-background px-5">
-      <div className="panel w-full max-w-sm p-7">
-        <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground">
+      <div className="card-elegant w-full max-w-sm p-7">
+        <span className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground">
           <ShieldCheck className="size-5" />
         </span>
-        <h1 className="mt-4 text-xl font-bold">Vigilância RASFF · BRC</h1>
+        <h1 className="mt-4 text-xl font-bold">Gestão Matérias Primas A&amp;S</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           Área reservada à equipa de qualidade. Introduza o seu PIN pessoal.
         </p>
