@@ -102,6 +102,13 @@ function normalizeLevel(value?: string | null) {
   return "MEDIO";
 }
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export const runRasffAnalysis = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
@@ -109,10 +116,12 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
         weekLabel: z.string().min(1),
         weekStart: z.string().nullish(),
         filename: z.string().nullish(),
-        text: z.string().min(20),
+        text: z.string().nullish(),
+        alerts: z.array(alertSchema).nullish(),
       })
       .parse(data),
   )
+
   .handler(async ({ data }) => {
     const { requireUnlocked } = await import("./gate.server");
     await requireUnlocked();
@@ -134,25 +143,34 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       "notified_on em formato YYYY-MM-DD ou null. Escreve em português.",
     ].join(" ");
 
-    // Split long listings so each model call stays short enough to finish.
-    const textChunks: string[] = [];
-    const full = data.text.slice(0, 200000);
-    const CHUNK = 25000;
-    for (let i = 0; i < full.length; i += CHUNK) textChunks.push(full.slice(i, i + CHUNK));
-
     const alerts: z.infer<typeof alertSchema>[] = [];
-    for (const chunk of textChunks) {
-      const extraction = await askAI(extractionSystem, chunk);
-      alerts.push(
-        ...z
-          .array(alertSchema)
-          .catch([])
-          .parse(extraction["alerts"] ?? [])
-          .filter((a) => a.product && a.product.trim().length > 1),
-      );
+
+    if (data.alerts && data.alerts.length > 0) {
+      // Structured listing (RASFF Window export): already parsed, no extraction needed.
+      alerts.push(...data.alerts.filter((a) => a.product && a.product.trim().length > 1));
+    } else {
+      const source = (data.text ?? "").trim();
+      if (source.length < 20) throw new Error("Não foi possível ler alertas no ficheiro enviado.");
+      // Split long listings so each model call stays short enough to finish.
+      const textChunks: string[] = [];
+      const full = source.slice(0, 200000);
+      const CHUNK = 25000;
+      for (let i = 0; i < full.length; i += CHUNK) textChunks.push(full.slice(i, i + CHUNK));
+
+      for (const chunk of textChunks) {
+        const extraction = await askAI(extractionSystem, chunk);
+        alerts.push(
+          ...z
+            .array(alertSchema)
+            .catch([])
+            .parse(extraction["alerts"] ?? [])
+            .filter((a) => a.product && a.product.trim().length > 1),
+        );
+      }
     }
 
     if (alerts.length === 0) throw new Error("Não foi possível identificar alertas no documento enviado.");
+
 
     const inventoryForAI = materials.map((m) => ({
       codigo: m.code,
@@ -178,11 +196,41 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       "Escreve tudo em português de Portugal. Não inventes MP que não estejam no inventário.",
     ].join(" ");
 
+    // Very long listings get narrowed to alerts that literally touch the
+    // inventory; normal weekly volumes are always fully assessed by the model.
+    let relevant = alerts;
+    if (alerts.length > 120) {
+      const tokens = new Set<string>();
+      for (const m of materials) {
+        for (const word of normalizeText(m.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
+        for (const origin of m.origins ?? []) {
+          const o = normalizeText(origin).trim();
+          if (o.length >= 4) tokens.add(o);
+        }
+        for (const ing of m.raw_material_ingredients ?? []) {
+          for (const word of normalizeText(ing.name).split(/[^a-z0-9]+/)) if (word.length >= 4) tokens.add(word);
+          if (ing.origin) {
+            const o = normalizeText(ing.origin).trim();
+            if (o.length >= 4) tokens.add(o);
+          }
+        }
+      }
+      const matched = alerts.filter((a) => {
+        const haystack = normalizeText(
+          [a.product, a.hazard, a.origin_country, a.manufacturer, a.raw_text].filter(Boolean).join(" | "),
+        );
+        for (const token of tokens) if (haystack.includes(token)) return true;
+        return false;
+      });
+      if (matched.length >= 20) relevant = matched;
+    }
+
+
     const findings: z.infer<typeof findingSchema>[] = [];
     const summaries: string[] = [];
     const BATCH = 20;
-    for (let i = 0; i < alerts.length; i += BATCH) {
-      const batch = alerts.slice(i, i + BATCH);
+    for (let i = 0; i < relevant.length; i += BATCH) {
+      const batch = relevant.slice(i, i + BATCH);
       const assessment = await askAI(
         assessmentSystem,
         JSON.stringify({ alertas: batch, inventario: inventoryForAI }).slice(0, 150000),
@@ -190,6 +238,7 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       findings.push(...z.array(findingSchema).catch([]).parse(assessment["findings"] ?? []));
       if (typeof assessment["summary"] === "string") summaries.push(assessment["summary"] as string);
     }
+
     const summary = summaries.length > 0 ? summaries.join("\n\n") : null;
 
     const { data: analysis, error: analysisError } = await supabaseAdmin

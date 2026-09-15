@@ -4,16 +4,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { FileUp, Loader2, Sparkles } from "lucide-react";
+import { FileUp, Loader2, Sparkles, CalendarRange } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { extractTextFromFile } from "@/lib/file-text";
+import { extractTextFromFile, readSpreadsheetRows } from "@/lib/file-text";
+import { groupRowsByWeek, looksStructured, type WeekBucket } from "@/lib/rasff-table";
 import { materialsQuery } from "@/lib/queries";
 import { runRasffAnalysis } from "@/lib/rasff.functions";
+
 
 export const Route = createFileRoute("/nova-analise")({
   head: () => ({
@@ -55,12 +57,32 @@ function NewAnalysis() {
   const [weekStart, setWeekStart] = useState("");
   const [filename, setFilename] = useState("");
   const [text, setText] = useState("");
+  const [weeks, setWeeks] = useState<WeekBucket[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [reading, setReading] = useState(false);
   const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState("");
 
   async function handleFile(file: File) {
     setReading(true);
+    setWeeks([]);
+    setSelected(new Set());
     try {
+      const name = file.name.toLowerCase();
+      if (/\.(xlsx|xls|xlsm|csv)$/.test(name)) {
+        const rows = await readSpreadsheetRows(file);
+        if (looksStructured(rows)) {
+          const buckets = groupRowsByWeek(rows);
+          if (buckets.length > 0) {
+            setWeeks(buckets);
+            setSelected(new Set(buckets.map((b) => b.key)));
+            setText("");
+            setFilename(file.name);
+            toast.success(`${rows.length} alertas lidos em ${buckets.length} semanas.`);
+            return;
+          }
+        }
+      }
       const extracted = await extractTextFromFile(file);
       if (extracted.trim().length < 20) {
         throw new Error("Não foi possível ler texto deste ficheiro. Se for um PDF digitalizado, cole o texto abaixo.");
@@ -82,6 +104,43 @@ function NewAnalysis() {
     }
     setRunning(true);
     try {
+      if (weeks.length > 0) {
+        const chosen = weeks.filter((w) => selected.has(w.key));
+        if (chosen.length === 0) {
+          toast.error("Selecione pelo menos uma semana.");
+          return;
+        }
+        let done = 0;
+        let atRisk = 0;
+        let lastId: string | null = null;
+        for (const week of chosen) {
+          setProgress(`${week.label} (${done + 1}/${chosen.length})`);
+          try {
+            const result = await analyse({
+              data: {
+                weekLabel: week.label,
+                weekStart: week.weekStart,
+                filename: filename || null,
+                alerts: week.alerts,
+              },
+            });
+            atRisk += result.atRisk;
+            lastId = result.analysisId;
+          } catch (error) {
+            toast.error(`${week.label}: ${error instanceof Error ? error.message : "falhou"}`);
+          }
+          done += 1;
+        }
+        await queryClient.invalidateQueries();
+        toast.success(`${done} semanas analisadas · ${atRisk} classificações de MP em risco.`);
+        if (chosen.length === 1 && lastId) {
+          void navigate({ to: "/analise/$analysisId", params: { analysisId: lastId } });
+        } else {
+          void navigate({ to: "/" });
+        }
+        return;
+      }
+
       const result = await analyse({
         data: { weekLabel, weekStart: weekStart || null, filename: filename || null, text },
       });
@@ -92,8 +151,19 @@ function NewAnalysis() {
       toast.error(error instanceof Error ? error.message : "A análise falhou.");
     } finally {
       setRunning(false);
+      setProgress("");
     }
   }
+
+  function toggleWeek(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
 
   return (
     <AppShell
@@ -103,16 +173,27 @@ function NewAnalysis() {
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="panel p-5">
           <h2 className="text-base font-semibold">1. Identificação da semana</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="week">Semana</Label>
-              <Input id="week" value={weekLabel} onChange={(event) => setWeekLabel(event.target.value)} />
+          {weeks.length > 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              O ficheiro já indica as datas dos alertas, por isso as semanas são identificadas automaticamente.
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="week">Semana</Label>
+                <Input id="week" value={weekLabel} onChange={(event) => setWeekLabel(event.target.value)} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="start">Início da semana</Label>
+                <Input
+                  id="start"
+                  type="date"
+                  value={weekStart}
+                  onChange={(event) => setWeekStart(event.target.value)}
+                />
+              </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="start">Início da semana</Label>
-              <Input id="start" type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} />
-            </div>
-          </div>
+          )}
 
           <h2 className="mt-7 text-base font-semibold">2. Listagem de alertas</h2>
           <label className="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-secondary/40 px-4 py-8 text-center transition-colors hover:border-primary/50">
@@ -138,16 +219,69 @@ function NewAnalysis() {
             />
           </label>
 
-          <Textarea
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder="Texto dos alertas RASFF da semana…"
-            className="mt-3 min-h-40 font-mono text-xs"
-          />
+          {weeks.length > 0 ? (
+            <div className="mt-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">
+                  <CalendarRange className="mr-1.5 inline size-4 text-primary" />
+                  {weeks.length} semanas detetadas · {selected.size} selecionadas
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSelected(new Set(weeks.map((w) => w.key)))}>
+                    Todas
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
+                    Nenhuma
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-border">
+                {weeks.map((week) => (
+                  <label
+                    key={week.key}
+                    className="flex cursor-pointer items-center gap-3 border-b border-border/60 px-3 py-2 text-sm last:border-0 hover:bg-secondary/50"
+                  >
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[hsl(var(--primary))]"
+                      checked={selected.has(week.key)}
+                      onChange={() => toggleWeek(week.key)}
+                    />
+                    <span className="font-medium">{week.label}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {week.alerts.length} alertas{week.weekStart ? ` · início ${week.weekStart}` : ""}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Cada semana gera um relatório próprio. Muitas semanas de uma vez podem demorar bastante — pode começar
+                por algumas e continuar depois.
+              </p>
+            </div>
+          ) : (
+            <Textarea
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder="Texto dos alertas RASFF da semana…"
+              className="mt-3 min-h-40 font-mono text-xs"
+            />
+          )}
 
-          <Button className="mt-4 w-full" disabled={running || reading || text.trim().length < 20} onClick={handleRun}>
+          <Button
+            className="mt-4 w-full"
+            disabled={running || reading || (weeks.length > 0 ? selected.size === 0 : text.trim().length < 20)}
+            onClick={handleRun}
+          >
             {running ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
-            {running ? "A analisar alertas e MP…" : "Analisar e gerar relatório"}
+            {running
+              ? progress
+                ? `A analisar ${progress}…`
+                : "A analisar alertas e MP…"
+              : weeks.length > 0
+                ? `Analisar ${selected.size} semana(s)`
+                : "Analisar e gerar relatório"}
+
           </Button>
         </section>
 
