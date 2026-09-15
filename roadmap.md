@@ -9,3 +9,5 @@
 - [x] Revisão manual do nível de risco, notas e fecho do relatório
 - [x] Dashboard com histórico semanal e evolução do risco
 - [ ] Publicar o site para a equipa (ação do utilizador)
+
+- [x] Importar ficheiro RASFF anual estruturado (RASFF_2026.xlsx) e separar automaticamente por semana, um relatorio por semana
