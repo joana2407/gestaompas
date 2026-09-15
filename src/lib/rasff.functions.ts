@@ -102,24 +102,11 @@ function normalizeLevel(value?: string | null) {
   return "MEDIO";
 }
 
-function isValidDate(value?: string | null): value is string {
-  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
-}
-
-/** ISO week label + Monday of that week, from a YYYY-MM-DD date. */
-function isoWeekOf(date: string) {
-  const d = new Date(`${date}T00:00:00Z`);
-  const target = new Date(d);
-  const day = target.getUTCDay() || 7;
-  target.setUTCDate(target.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-  const week = Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  const monday = new Date(d);
-  monday.setUTCDate(monday.getUTCDate() - ((d.getUTCDay() || 7) - 1));
-  return {
-    label: `Semana ${String(week).padStart(2, "0")}/${target.getUTCFullYear()}`,
-    start: monday.toISOString().slice(0, 10),
-  };
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 export const runRasffAnalysis = createServerFn({ method: "POST" })
@@ -129,8 +116,8 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
         weekLabel: z.string().min(1),
         weekStart: z.string().nullish(),
         filename: z.string().nullish(),
-        text: z.string().min(20),
-        splitByWeek: z.boolean().nullish(),
+        text: z.string().nullish(),
+        alerts: z.array(alertSchema).nullish(),
       })
       .parse(data),
   )
@@ -156,25 +143,34 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
       "notified_on em formato YYYY-MM-DD ou null. Escreve em português.",
     ].join(" ");
 
-    // Split long listings so each model call stays short enough to finish.
-    const textChunks: string[] = [];
-    const full = data.text.slice(0, 200000);
-    const CHUNK = 25000;
-    for (let i = 0; i < full.length; i += CHUNK) textChunks.push(full.slice(i, i + CHUNK));
-
     const alerts: z.infer<typeof alertSchema>[] = [];
-    for (const chunk of textChunks) {
-      const extraction = await askAI(extractionSystem, chunk);
-      alerts.push(
-        ...z
-          .array(alertSchema)
-          .catch([])
-          .parse(extraction["alerts"] ?? [])
-          .filter((a) => a.product && a.product.trim().length > 1),
-      );
+
+    if (data.alerts && data.alerts.length > 0) {
+      // Structured listing (RASFF Window export): already parsed, no extraction needed.
+      alerts.push(...data.alerts.filter((a) => a.product && a.product.trim().length > 1));
+    } else {
+      const source = (data.text ?? "").trim();
+      if (source.length < 20) throw new Error("Não foi possível ler alertas no ficheiro enviado.");
+      // Split long listings so each model call stays short enough to finish.
+      const textChunks: string[] = [];
+      const full = source.slice(0, 200000);
+      const CHUNK = 25000;
+      for (let i = 0; i < full.length; i += CHUNK) textChunks.push(full.slice(i, i + CHUNK));
+
+      for (const chunk of textChunks) {
+        const extraction = await askAI(extractionSystem, chunk);
+        alerts.push(
+          ...z
+            .array(alertSchema)
+            .catch([])
+            .parse(extraction["alerts"] ?? [])
+            .filter((a) => a.product && a.product.trim().length > 1),
+        );
+      }
     }
 
     if (alerts.length === 0) throw new Error("Não foi possível identificar alertas no documento enviado.");
+
 
     const inventoryForAI = materials.map((m) => ({
       codigo: m.code,
