@@ -173,16 +173,27 @@ function NewAnalysis() {
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="panel p-5">
           <h2 className="text-base font-semibold">1. Identificação da semana</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="week">Semana</Label>
-              <Input id="week" value={weekLabel} onChange={(event) => setWeekLabel(event.target.value)} />
+          {weeks.length > 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              O ficheiro já indica as datas dos alertas, por isso as semanas são identificadas automaticamente.
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="week">Semana</Label>
+                <Input id="week" value={weekLabel} onChange={(event) => setWeekLabel(event.target.value)} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="start">Início da semana</Label>
+                <Input
+                  id="start"
+                  type="date"
+                  value={weekStart}
+                  onChange={(event) => setWeekStart(event.target.value)}
+                />
+              </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="start">Início da semana</Label>
-              <Input id="start" type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} />
-            </div>
-          </div>
+          )}
 
           <h2 className="mt-7 text-base font-semibold">2. Listagem de alertas</h2>
           <label className="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-secondary/40 px-4 py-8 text-center transition-colors hover:border-primary/50">
@@ -208,16 +219,69 @@ function NewAnalysis() {
             />
           </label>
 
-          <Textarea
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder="Texto dos alertas RASFF da semana…"
-            className="mt-3 min-h-40 font-mono text-xs"
-          />
+          {weeks.length > 0 ? (
+            <div className="mt-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">
+                  <CalendarRange className="mr-1.5 inline size-4 text-primary" />
+                  {weeks.length} semanas detetadas · {selected.size} selecionadas
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSelected(new Set(weeks.map((w) => w.key)))}>
+                    Todas
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
+                    Nenhuma
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-border">
+                {weeks.map((week) => (
+                  <label
+                    key={week.key}
+                    className="flex cursor-pointer items-center gap-3 border-b border-border/60 px-3 py-2 text-sm last:border-0 hover:bg-secondary/50"
+                  >
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[hsl(var(--primary))]"
+                      checked={selected.has(week.key)}
+                      onChange={() => toggleWeek(week.key)}
+                    />
+                    <span className="font-medium">{week.label}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {week.alerts.length} alertas{week.weekStart ? ` · início ${week.weekStart}` : ""}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Cada semana gera um relatório próprio. Muitas semanas de uma vez podem demorar bastante — pode começar
+                por algumas e continuar depois.
+              </p>
+            </div>
+          ) : (
+            <Textarea
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder="Texto dos alertas RASFF da semana…"
+              className="mt-3 min-h-40 font-mono text-xs"
+            />
+          )}
 
-          <Button className="mt-4 w-full" disabled={running || reading || text.trim().length < 20} onClick={handleRun}>
+          <Button
+            className="mt-4 w-full"
+            disabled={running || reading || (weeks.length > 0 ? selected.size === 0 : text.trim().length < 20)}
+            onClick={handleRun}
+          >
             {running ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
-            {running ? "A analisar alertas e MP…" : "Analisar e gerar relatório"}
+            {running
+              ? progress
+                ? `A analisar ${progress}…`
+                : "A analisar alertas e MP…"
+              : weeks.length > 0
+                ? `Analisar ${selected.size} semana(s)`
+                : "Analisar e gerar relatório"}
+
           </Button>
         </section>
 
