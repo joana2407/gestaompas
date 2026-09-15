@@ -3,12 +3,13 @@ import { gateStatus } from "@/lib/gate.functions";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, Upload } from "lucide-react";
+import { Loader2, Plus, Search, Upload } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { replaceInventory, setIngredients } from "@/lib/data.functions";
+import { Textarea } from "@/components/ui/textarea";
+import { createMaterial, replaceInventory, setIngredients } from "@/lib/data.functions";
 import { materialsQuery } from "@/lib/queries";
 import { parseInventoryWorkbook } from "@/lib/inventory-import";
 
