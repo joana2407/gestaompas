@@ -5,6 +5,14 @@ import {
   listFindingsOverview,
   listMaterials,
 } from "@/lib/data.functions";
+import {
+  getMaterialDetail,
+  getSupplierDetail,
+  listCatalog,
+  listDocuments,
+  listFactories,
+  listSuppliers,
+} from "@/lib/catalog.functions";
 
 export type RiskLevel = "ALTO" | "MEDIO" | "BAIXO";
 
