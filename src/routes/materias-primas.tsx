@@ -129,6 +129,90 @@ function Inventory() {
   );
 }
 
+function NewMaterialForm({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [category, setCategory] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [origins, setOrigins] = useState("");
+  const [ingredients, setIngredients] = useState("");
+  const [notes, setNotes] = useState("");
+
+  async function submit() {
+    if (!name.trim()) {
+      toast.error("Indique o nome da matéria-prima.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const list = (value: string) =>
+        value
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean);
+      const ingredientNames = list(ingredients);
+      await createMaterial({
+        data: {
+          name: name.trim(),
+          code: code.trim() || null,
+          category: category.trim() || null,
+          kind: ingredientNames.length > 1 ? "composta" : "simples",
+          origins: list(origins),
+          supplier: supplier.trim() || null,
+          notes: notes.trim() || null,
+          ingredients: ingredientNames.map((n) => ({ name: n, origin: null })),
+        },
+      });
+      await queryClient.invalidateQueries();
+      toast.success("Matéria-prima adicionada.");
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="panel mb-4 p-4">
+      <h2 className="font-display mb-3 text-base font-semibold">Nova matéria-prima</h2>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da MP (obrigatório)" />
+        <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Código / referência" />
+        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Categoria" />
+        <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Fornecedor" />
+        <Input
+          value={origins}
+          onChange={(e) => setOrigins(e.target.value)}
+          placeholder="Origens separadas por vírgula (ex.: Portugal, Espanha)"
+        />
+        <Input
+          value={ingredients}
+          onChange={(e) => setIngredients(e.target.value)}
+          placeholder="Ingredientes separados por vírgula (deixe vazio se for simples)"
+        />
+      </div>
+      <Textarea
+        className="mt-3"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Observações"
+      />
+      <div className="mt-3 flex gap-2">
+        <Button disabled={saving} onClick={() => void submit()}>
+          {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+          Guardar
+        </Button>
+        <Button variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+      </div>
+    </section>
+  );
+}
+
 type Material = {
   id: string;
   code: string | null;
