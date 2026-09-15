@@ -102,6 +102,26 @@ function normalizeLevel(value?: string | null) {
   return "MEDIO";
 }
 
+function isValidDate(value?: string | null): value is string {
+  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
+}
+
+/** ISO week label + Monday of that week, from a YYYY-MM-DD date. */
+function isoWeekOf(date: string) {
+  const d = new Date(`${date}T00:00:00Z`);
+  const target = new Date(d);
+  const day = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  const monday = new Date(d);
+  monday.setUTCDate(monday.getUTCDate() - ((d.getUTCDay() || 7) - 1));
+  return {
+    label: `Semana ${String(week).padStart(2, "0")}/${target.getUTCFullYear()}`,
+    start: monday.toISOString().slice(0, 10),
+  };
+}
+
 export const runRasffAnalysis = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
@@ -110,9 +130,11 @@ export const runRasffAnalysis = createServerFn({ method: "POST" })
         weekStart: z.string().nullish(),
         filename: z.string().nullish(),
         text: z.string().min(20),
+        splitByWeek: z.boolean().nullish(),
       })
       .parse(data),
   )
+
   .handler(async ({ data }) => {
     const { requireUnlocked } = await import("./gate.server");
     await requireUnlocked();
