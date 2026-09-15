@@ -7,8 +7,11 @@ import { gateStatus, lockSite } from "@/lib/gate.functions";
 
 const NAV = [
   { to: "/", label: "Dashboard" },
-  { to: "/nova-analise", label: "Nova análise" },
   { to: "/materias-primas", label: "Matérias-primas" },
+  { to: "/fornecedores", label: "Fornecedores" },
+  { to: "/documentos", label: "Documentação" },
+  { to: "/fabricas", label: "Fábricas" },
+  { to: "/nova-analise", label: "Nova análise" },
 ];
 
 export function AppShell({
