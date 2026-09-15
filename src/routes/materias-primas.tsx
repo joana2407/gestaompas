@@ -39,6 +39,7 @@ function Inventory() {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
+  const [adding, setAdding] = useState(false);
 
   async function handleFile(file: File) {
     setBusy(true);
