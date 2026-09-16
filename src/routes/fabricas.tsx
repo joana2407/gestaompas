@@ -2,6 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { AppShell } from "@/components/AppShell";
+import { AllergenIcon, FactoryIcon } from "@/components/icons";
 import { ESTADOS_MP_FABRICA, alergenioLabel } from "@/lib/domain";
 import { gateStatus } from "@/lib/gate.functions";
 import { catalogQuery } from "@/lib/queries";
@@ -50,12 +51,33 @@ function FactoriesPage() {
 
           return (
             <section key={factory.id} className="panel p-4">
-              <h2 className="font-display text-base font-semibold">{factory.name}</h2>
-              <p className="text-xs text-muted-foreground">{factory.code}</p>
-              <p className="mt-3 text-sm">
-                <span className="text-muted-foreground">Alergénios bloqueados: </span>
-                {blocked.length > 0 ? blocked.map(alergenioLabel).join(", ") : "nenhum"}
-              </p>
+              <div className="flex items-center gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <FactoryIcon code={factory.code} className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="font-display text-base font-semibold">{factory.name}</h2>
+                  <p className="text-xs text-muted-foreground">{factory.code}</p>
+                </div>
+              </div>
+              <div className="mt-3 text-sm">
+                <span className="text-xs text-muted-foreground">Alergénios bloqueados</span>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {blocked.length > 0 ? (
+                    blocked.map((id) => (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 rounded-md border border-high/30 bg-high-soft px-1.5 py-0.5 text-[11px] font-semibold text-high"
+                      >
+                        <AllergenIcon id={id} className="size-3" />
+                        {alergenioLabel(id)}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">nenhum</span>
+                  )}
+                </div>
+              </div>
               <dl className="mt-3 space-y-1 text-sm">
                 {ESTADOS_MP_FABRICA.map((state) => (
                   <div key={state.id} className="flex justify-between">

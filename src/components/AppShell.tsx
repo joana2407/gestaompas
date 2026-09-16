@@ -12,6 +12,7 @@ const NAV = [
   { to: "/materias-primas", label: "Matérias-primas", group: "gestao", icon: Package },
   { to: "/fornecedores", label: "Fornecedores", group: "gestao", icon: Users },
   { to: "/documentos", label: "Documentação", group: "documentos", icon: FileText },
+  { to: "/conformidade", label: "Conformidade", group: "documentos", icon: ShieldCheck },
 ] as const;
 
 const GROUPS = [
