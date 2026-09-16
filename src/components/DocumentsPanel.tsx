@@ -37,6 +37,8 @@ export function DocumentsPanel({
   materials,
   fixedSupplierId,
   fixedMaterialId,
+  supplierOptions,
+  supplierRequired = false,
   title = "Documentação",
 }: {
   documents: DocumentRow[];
@@ -44,6 +46,10 @@ export function DocumentsPanel({
   materials: { id: string; name: string }[];
   fixedSupplierId?: string | undefined;
   fixedMaterialId?: string | undefined;
+  /** Fornecedores que podem ser escolhidos no formulário (por omissão, todos). */
+  supplierOptions?: { id: string; name: string }[] | undefined;
+  /** Obriga a indicar o fornecedor do documento (fichas técnicas de MP). */
+  supplierRequired?: boolean;
   title?: string;
 }) {
   const [showArchived, setShowArchived] = useState(false);
@@ -68,14 +74,16 @@ export function DocumentsPanel({
 
       {form.open ? (
         <DocumentForm
-          suppliers={suppliers}
+          suppliers={supplierOptions ?? suppliers}
           materials={materials}
           fixedSupplierId={fixedSupplierId}
           fixedMaterialId={fixedMaterialId}
+          supplierRequired={supplierRequired}
           supersedes={form.supersedes}
           onClose={() => setForm({ open: false })}
         />
       ) : null}
+
 
       {visible.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
@@ -181,6 +189,7 @@ function DocumentForm({
   materials,
   fixedSupplierId,
   fixedMaterialId,
+  supplierRequired = false,
   supersedes,
   onClose,
 }: {
@@ -188,12 +197,15 @@ function DocumentForm({
   materials: { id: string; name: string }[];
   fixedSupplierId?: string | undefined;
   fixedMaterialId?: string | undefined;
+  supplierRequired?: boolean;
   supersedes?: DocumentRow | undefined;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [supplierId, setSupplierId] = useState(fixedSupplierId ?? supersedes?.supplier_id ?? "");
+  const [supplierId, setSupplierId] = useState(
+    fixedSupplierId ?? supersedes?.supplier_id ?? (supplierRequired && suppliers.length === 1 ? suppliers[0]!.id : ""),
+  );
   const [materialId, setMaterialId] = useState(fixedMaterialId ?? supersedes?.raw_material_id ?? "");
   const [docType, setDocType] = useState(supersedes?.doc_type ?? "ficha_tecnica");
   const [docTitle, setDocTitle] = useState(supersedes?.title ?? "");
@@ -208,10 +220,15 @@ function DocumentForm({
       toast.error("Indique o título e a versão do documento.");
       return;
     }
+    if (supplierRequired && !supplierId) {
+      toast.error("Indique o fornecedor a que este documento pertence.");
+      return;
+    }
     if (!supplierId && !materialId) {
       toast.error("Associe o documento a um fornecedor ou a uma matéria-prima.");
       return;
     }
+
     if (file && file.size > MAX_MB * 1024 * 1024) {
       toast.error(`O ficheiro excede ${MAX_MB} MB.`);
       return;
@@ -254,7 +271,7 @@ function DocumentForm({
             onChange={(e) => setSupplierId(e.target.value)}
             className="rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="">Sem fornecedor associado</option>
+            <option value="">{supplierRequired ? "Escolher fornecedor (obrigatório)" : "Sem fornecedor associado"}</option>
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}

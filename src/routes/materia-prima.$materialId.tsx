@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,15 +9,21 @@ import { AppShell } from "@/components/AppShell";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  deleteMaterial,
   removeMaterialSupplier,
   setMaterialAllergens,
   setMaterialFactories,
+  setMaterialIngredients,
+  updateMaterialBasics,
+  updateMaterialSupplierLink,
   upsertMaterialSupplier,
 } from "@/lib/catalog.functions";
 import { ESTADOS_MP_FABRICA, alergenioLabel } from "@/lib/domain";
 import { gateStatus } from "@/lib/gate.functions";
 import { materialDetailQuery } from "@/lib/queries";
+
 
 export const Route = createFileRoute("/materia-prima/$materialId")({
   head: () => ({
@@ -122,25 +128,19 @@ function MaterialDetail() {
         />
       </div>
 
-      <section className="panel my-4 p-4">
-        <h2 className="font-display mb-1 text-base font-semibold">Composição e origens</h2>
-        <p className="text-sm">
-          <span className="text-muted-foreground">Origens: </span>
-          {material.origins.length > 0 ? material.origins.join(", ") : "—"}
-        </p>
-        <p className="mt-1 text-sm">
-          <span className="text-muted-foreground">Ingredientes: </span>
-          {(material.raw_material_ingredients ?? []).length > 0
-            ? (material.raw_material_ingredients ?? []).map((i) => i.name).join(", ")
-            : "—"}
-        </p>
-        <div className="mt-3">
-          <AllergenTags
-            formulation={material.allergens_formulation ?? []}
-            contamination={material.allergens_contamination ?? []}
-          />
-        </div>
-      </section>
+      <div className="my-4 grid gap-4 lg:grid-cols-2">
+        <BasicsCard material={material} />
+        <IngredientsCard
+          materialId={materialId}
+          ingredients={material.raw_material_ingredients ?? []}
+          allergens={
+            <AllergenTags
+              formulation={material.allergens_formulation ?? []}
+              contamination={material.allergens_contamination ?? []}
+            />
+          }
+        />
+      </div>
 
       <SuppliersCard materialId={materialId} links={data.materialSuppliers} suppliers={data.suppliers} />
 
@@ -148,14 +148,209 @@ function MaterialDetail() {
         <DocumentsPanel
           documents={data.documents}
           suppliers={data.suppliers}
+          supplierOptions={data.materialSuppliers.map((l) => ({
+            id: l.supplier_id,
+            name: l.suppliers?.name ?? "Fornecedor",
+          }))}
+          supplierRequired
           materials={[{ id: material.id, name: material.name }]}
           fixedMaterialId={material.id}
-          title="Documentação da matéria-prima"
+          title="Documentação técnica da matéria-prima (por fornecedor)"
         />
       </div>
+
     </AppShell>
   );
 }
+
+function BasicsCard({
+  material,
+}: {
+  material: {
+    id: string;
+    name: string;
+    code: string | null;
+    category: string | null;
+    origins: string[];
+    notes: string | null;
+  };
+}) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [form, setForm] = useState({
+    name: material.name,
+    code: material.code ?? "",
+    category: material.category ?? "",
+    origins: material.origins.join(", "),
+    notes: material.notes ?? "",
+  });
+
+  async function save() {
+    if (!form.name.trim()) {
+      toast.error("Indique o nome da matéria-prima.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateMaterialBasics({
+        data: {
+          materialId: material.id,
+          name: form.name.trim(),
+          code: form.code.trim() || null,
+          category: form.category.trim() || null,
+          origins: form.origins
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean),
+          notes: form.notes.trim() || null,
+        },
+      });
+      await queryClient.invalidateQueries();
+      toast.success("Matéria-prima atualizada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (
+      !window.confirm(
+        `Eliminar "${material.name}"? São também eliminados os fornecedores associados e a documentação desta matéria-prima.`,
+      )
+    )
+      return;
+    setRemoving(true);
+    try {
+      await deleteMaterial({ data: { materialId: material.id } });
+      await queryClient.invalidateQueries();
+      toast.success("Matéria-prima eliminada.");
+      void navigate({ to: "/materias-primas" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível eliminar.");
+      setRemoving(false);
+    }
+  }
+
+  return (
+    <section className="panel p-4">
+      <h2 className="font-display mb-3 text-base font-semibold">Dados da matéria-prima</h2>
+      <div className="grid gap-2 md:grid-cols-2">
+        <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nome" />
+        <Input
+          value={form.code}
+          onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+          placeholder="Código / referência"
+        />
+        <Input
+          value={form.category}
+          onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+          placeholder="Categoria"
+        />
+        <Input
+          value={form.origins}
+          onChange={(e) => setForm((f) => ({ ...f, origins: e.target.value }))}
+          placeholder="Origens separadas por vírgula"
+        />
+      </div>
+      <Textarea
+        className="mt-2"
+        value={form.notes}
+        onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+        placeholder="Observações"
+      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" disabled={saving} onClick={() => void save()}>
+          {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+          Guardar dados
+        </Button>
+        <Button size="sm" variant="ghost" disabled={removing} onClick={() => void remove()}>
+          <Trash2 className="mr-2 size-4" /> Eliminar matéria-prima
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function IngredientsCard({
+  materialId,
+  ingredients,
+  allergens,
+}: {
+  materialId: string;
+  ingredients: { id: string; name: string; origin: string | null }[];
+  allergens: React.ReactNode;
+}) {
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [rows, setRows] = useState(ingredients.map((i) => ({ name: i.name, origin: i.origin ?? "" })));
+
+  async function save() {
+    const clean = rows.filter((r) => r.name.trim());
+    setSaving(true);
+    try {
+      await setMaterialIngredients({
+        data: {
+          materialId,
+          ingredients: clean.map((r) => ({ name: r.name.trim(), origin: r.origin.trim() || null })),
+        },
+      });
+      await queryClient.invalidateQueries();
+      toast.success("Ingredientes atualizados.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="panel p-4">
+      <h2 className="font-display mb-1 text-base font-semibold">Ingredientes e origens</h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Indique a origem de cada ingrediente para a rastreabilidade das MP compostas.
+      </p>
+      <div className="space-y-2">
+        {rows.length === 0 ? <p className="text-sm text-muted-foreground">Sem ingredientes registados.</p> : null}
+        {rows.map((row, index) => (
+          <div key={index} className="flex gap-2">
+            <Input
+              value={row.name}
+              onChange={(e) =>
+                setRows((rs) => rs.map((r, i) => (i === index ? { ...r, name: e.target.value } : r)))
+              }
+              placeholder="Ingrediente"
+            />
+            <Input
+              value={row.origin}
+              onChange={(e) =>
+                setRows((rs) => rs.map((r, i) => (i === index ? { ...r, origin: e.target.value } : r)))
+              }
+              placeholder="Origem"
+            />
+            <Button size="sm" variant="ghost" onClick={() => setRows((rs) => rs.filter((_, i) => i !== index))}>
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setRows((rs) => [...rs, { name: "", origin: "" }])}>
+          Adicionar ingrediente
+        </Button>
+        <Button size="sm" disabled={saving} onClick={() => void save()}>
+          {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+          Guardar ingredientes
+        </Button>
+      </div>
+      <div className="mt-3">{allergens}</div>
+    </section>
+  );
+}
+
 
 function FactoriesCard({
   materialId,
@@ -344,32 +539,10 @@ function SuppliersCard({
       ) : (
         <ul className="divide-y divide-border">
           {links.map((link) => (
-            <li key={link.id} className="flex flex-wrap items-center gap-3 py-3">
-              <div className="min-w-0 flex-1">
-                <Link
-                  to="/fornecedor/$supplierId"
-                  params={{ supplierId: link.supplier_id }}
-                  className="text-sm font-semibold hover:underline"
-                >
-                  {link.suppliers?.name ?? "Fornecedor"}
-                </Link>
-                <p className="text-xs text-muted-foreground">
-                  {link.supplier_reference ? `Ref. ${link.supplier_reference}` : "sem referência"}
-                  {link.origin_country ? ` · origem ${link.origin_country}` : ""}
-                  {link.shelf_life_months ? ` · validade ${link.shelf_life_months} meses` : ""}
-                </p>
-              </div>
-              {link.preferred ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                  <Star className="size-3.5" /> Preferencial
-                </span>
-              ) : null}
-              <Button size="sm" variant="ghost" onClick={() => void remove(link.id)}>
-                <Trash2 className="size-4" />
-              </Button>
-            </li>
+            <SupplierLinkRow key={link.id} materialId={materialId} link={link} onRemove={() => void remove(link.id)} />
           ))}
         </ul>
+
       )}
 
       <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -416,5 +589,140 @@ function SuppliersCard({
         </Button>
       </div>
     </section>
+  );
+}
+
+type SupplierLink = {
+  id: string;
+  supplier_id: string;
+  supplier_reference: string | null;
+  origin_country: string | null;
+  shelf_life_months: number | null;
+  preferred: boolean;
+  active?: boolean;
+  suppliers: { id: string; name: string; code: string | null; status: string } | null;
+};
+
+function SupplierLinkRow({
+  materialId,
+  link,
+  onRemove,
+}: {
+  materialId: string;
+  link: SupplierLink;
+  onRemove: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    reference: link.supplier_reference ?? "",
+    origin: link.origin_country ?? "",
+    shelfLife: link.shelf_life_months ? String(link.shelf_life_months) : "",
+    preferred: link.preferred,
+    active: link.active ?? true,
+  });
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateMaterialSupplierLink({
+        data: {
+          id: link.id,
+          materialId,
+          supplier_reference: form.reference.trim() || null,
+          origin_country: form.origin.trim() || null,
+          shelf_life_months: form.shelfLife ? Number(form.shelfLife) : null,
+          preferred: form.preferred,
+          active: form.active,
+        },
+      });
+      await queryClient.invalidateQueries();
+      setEditing(false);
+      toast.success("Fornecedor atualizado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <li className="py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <Link
+            to="/fornecedor/$supplierId"
+            params={{ supplierId: link.supplier_id }}
+            className="text-sm font-semibold hover:underline"
+          >
+            {link.suppliers?.name ?? "Fornecedor"}
+          </Link>
+          <p className="text-xs text-muted-foreground">
+            {link.supplier_reference ? `Ref. ${link.supplier_reference}` : "sem referência"}
+            {link.origin_country ? ` · origem ${link.origin_country}` : ""}
+            {link.shelf_life_months ? ` · validade ${link.shelf_life_months} meses` : ""}
+            {link.active === false ? " · inativo" : ""}
+          </p>
+        </div>
+        <span
+          className={`inline-flex items-center gap-1 text-xs font-medium ${
+            link.preferred ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          <Star className="size-3.5" /> {link.preferred ? "Preferencial" : "Secundário"}
+        </span>
+        <Button size="sm" variant="ghost" onClick={() => setEditing((v) => !v)}>
+          {editing ? "Fechar" : "Editar"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onRemove}>
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+
+      {editing ? (
+        <div className="mt-3 rounded-lg border border-border bg-secondary/40 p-3">
+          <div className="grid gap-2 md:grid-cols-3">
+            <Input
+              value={form.reference}
+              onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
+              placeholder="Referência do fornecedor"
+            />
+            <Input
+              value={form.origin}
+              onChange={(e) => setForm((f) => ({ ...f, origin: e.target.value }))}
+              placeholder="País de origem"
+            />
+            <Input
+              value={form.shelfLife}
+              onChange={(e) => setForm((f) => ({ ...f, shelfLife: e.target.value.replace(/\D/g, "") }))}
+              placeholder="Validade (meses)"
+            />
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={form.preferred}
+                onChange={(e) => setForm((f) => ({ ...f, preferred: e.target.checked }))}
+              />
+              Fornecedor preferencial
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
+              />
+              Ativo
+            </label>
+            <Button size="sm" disabled={saving} onClick={() => void save()}>
+              {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+              Guardar
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </li>
   );
 }
