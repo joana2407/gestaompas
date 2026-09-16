@@ -19,4 +19,5 @@
 - Não incorporar do projeto anexado: análise RASFF, Food Fraud e receções (a vigilância RASFF existente mantém-se como está)
 - [x] Recuperar a formatação visual original da Manus: menu lateral, barra superior, cartões e navegação móvel
 - [x] Atribuição automática das fábricas a cada MP (FAB1/FAB2 gerais, FAB3 apenas sem glúten) — a validar pela qualidade
-- [ ] Importar alergénios por MP a partir do ficheiro que a Joana vai enviar
+- [x] Importar alergénios por MP a partir das tabelas das 3 fábricas (formulação vs contaminação) e corrigir as fábricas de cada MP
+- [ ] Validar as MP que não constam das tabelas de alergénios (embalagens e outras) e as 6 MP sem correspondência: Softyplus, Ferment Souer, Massa Mãe fresca ISCO, Desmoldante Goldwax, Fermento em Pó, Massa Mãe desidratada de Milho
