@@ -295,19 +295,27 @@ function BasicsCard({
 
 function IngredientsCard({
   materialId,
+  kind,
   ingredients,
   allergens,
 }: {
   materialId: string;
+  kind: string;
   ingredients: { id: string; name: string; origin: string | null }[];
   allergens: React.ReactNode;
 }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState(ingredients.map((i) => ({ name: i.name, origin: i.origin ?? "" })));
+  const composta = kind === "composta";
+  const missingOrigins = composta ? rows.filter((r) => r.name.trim() && !r.origin.trim()).map((r) => r.name.trim()) : [];
 
   async function save() {
     const clean = rows.filter((r) => r.name.trim());
+    if (composta && clean.some((r) => !r.origin.trim())) {
+      toast.error("Nas matérias-primas compostas indique a origem de cada ingrediente.");
+      return;
+    }
     setSaving(true);
     try {
       await setMaterialIngredients({
