@@ -382,6 +382,7 @@ function CompliancePage() {
                     {s.code ? `${s.code} · ` : ""}
                     {s.rows.length} MP · {s.docs.length} documento(s)
                   </p>
+                  <NextExpiry docs={s.docs} label="Validade do fornecedor" />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {s.expired > 0 ? (
