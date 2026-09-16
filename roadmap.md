@@ -24,3 +24,4 @@
 - [ ] Validar as MP que não constam das tabelas de alergénios (embalagens e outras)
 - [x] Editar/eliminar MP: dados base e origens, ingredientes com origem, alergénios, fornecedores (preferencial e secundários) com origem e validade
 - [x] Documentação técnica de cada MP obrigatoriamente associada ao fornecedor
+- [ ] Melhorar layout: ícones representativos das fábricas, alergénios e restantes secções
