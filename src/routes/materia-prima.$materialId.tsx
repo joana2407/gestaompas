@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AlertTriangle, ArrowLeft, Loader2, Star, Trash2 } from "lucide-react";
 
 import { AllergenPicker, AllergenTags } from "@/components/AllergenTags";
+import { FactoryIcon } from "@/components/icons";
 import { AppShell } from "@/components/AppShell";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { Button } from "@/components/ui/button";
@@ -396,7 +397,10 @@ function FactoriesCard({
       <div className="space-y-2">
         {factories.map((factory) => (
           <div key={factory.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-2">
-            <span className="text-sm">{factory.name}</span>
+            <span className="flex items-center gap-2 text-sm">
+              <FactoryIcon code={factory.code} className="size-4 text-muted-foreground" />
+              {factory.name}
+            </span>
             <select
               value={state[factory.id] ?? "nao"}
               onChange={(e) => setState((s) => ({ ...s, [factory.id]: e.target.value }))}
