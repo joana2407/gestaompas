@@ -173,6 +173,7 @@ function BasicsCard({
     name: string;
     code: string | null;
     category: string | null;
+    kind: string;
     origins: string[];
     notes: string | null;
   };
