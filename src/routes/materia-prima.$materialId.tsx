@@ -539,32 +539,10 @@ function SuppliersCard({
       ) : (
         <ul className="divide-y divide-border">
           {links.map((link) => (
-            <li key={link.id} className="flex flex-wrap items-center gap-3 py-3">
-              <div className="min-w-0 flex-1">
-                <Link
-                  to="/fornecedor/$supplierId"
-                  params={{ supplierId: link.supplier_id }}
-                  className="text-sm font-semibold hover:underline"
-                >
-                  {link.suppliers?.name ?? "Fornecedor"}
-                </Link>
-                <p className="text-xs text-muted-foreground">
-                  {link.supplier_reference ? `Ref. ${link.supplier_reference}` : "sem referência"}
-                  {link.origin_country ? ` · origem ${link.origin_country}` : ""}
-                  {link.shelf_life_months ? ` · validade ${link.shelf_life_months} meses` : ""}
-                </p>
-              </div>
-              {link.preferred ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                  <Star className="size-3.5" /> Preferencial
-                </span>
-              ) : null}
-              <Button size="sm" variant="ghost" onClick={() => void remove(link.id)}>
-                <Trash2 className="size-4" />
-              </Button>
-            </li>
+            <SupplierLinkRow key={link.id} materialId={materialId} link={link} onRemove={() => void remove(link.id)} />
           ))}
         </ul>
+
       )}
 
       <div className="mt-3 grid gap-2 md:grid-cols-2">
