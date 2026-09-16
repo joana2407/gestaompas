@@ -201,7 +201,7 @@ function NewMaterialForm({ onClose }: { onClose: () => void }) {
         <Input
           value={ingredients}
           onChange={(e) => setIngredients(e.target.value)}
-          placeholder="Ingredientes separados por vírgula (deixe vazio se for simples)"
+          placeholder="Ingredientes com origem: Farinha (Portugal), Açúcar (Brasil)"
         />
       </div>
       <Textarea
@@ -247,6 +247,7 @@ function MaterialCard({
 }) {
   const queryClient = useQueryClient();
   const ingredients = material.raw_material_ingredients ?? [];
+  const missingIngredientOrigin = ingredients.some((i) => !i.origin);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(ingredients.map((i) => i.name).join(", "));
   const [saving, setSaving] = useState(false);
