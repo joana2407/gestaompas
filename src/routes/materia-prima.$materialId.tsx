@@ -163,6 +163,195 @@ function MaterialDetail() {
   );
 }
 
+function BasicsCard({
+  material,
+}: {
+  material: {
+    id: string;
+    name: string;
+    code: string | null;
+    category: string | null;
+    origins: string[];
+    notes: string | null;
+  };
+}) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [form, setForm] = useState({
+    name: material.name,
+    code: material.code ?? "",
+    category: material.category ?? "",
+    origins: material.origins.join(", "),
+    notes: material.notes ?? "",
+  });
+
+  async function save() {
+    if (!form.name.trim()) {
+      toast.error("Indique o nome da matéria-prima.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateMaterialBasics({
+        data: {
+          materialId: material.id,
+          name: form.name.trim(),
+          code: form.code.trim() || null,
+          category: form.category.trim() || null,
+          origins: form.origins
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean),
+          notes: form.notes.trim() || null,
+        },
+      });
+      await queryClient.invalidateQueries();
+      toast.success("Matéria-prima atualizada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (
+      !window.confirm(
+        `Eliminar "${material.name}"? São também eliminados os fornecedores associados e a documentação desta matéria-prima.`,
+      )
+    )
+      return;
+    setRemoving(true);
+    try {
+      await deleteMaterial({ data: { materialId: material.id } });
+      await queryClient.invalidateQueries();
+      toast.success("Matéria-prima eliminada.");
+      void navigate({ to: "/materias-primas" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível eliminar.");
+      setRemoving(false);
+    }
+  }
+
+  return (
+    <section className="panel p-4">
+      <h2 className="font-display mb-3 text-base font-semibold">Dados da matéria-prima</h2>
+      <div className="grid gap-2 md:grid-cols-2">
+        <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nome" />
+        <Input
+          value={form.code}
+          onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+          placeholder="Código / referência"
+        />
+        <Input
+          value={form.category}
+          onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+          placeholder="Categoria"
+        />
+        <Input
+          value={form.origins}
+          onChange={(e) => setForm((f) => ({ ...f, origins: e.target.value }))}
+          placeholder="Origens separadas por vírgula"
+        />
+      </div>
+      <Textarea
+        className="mt-2"
+        value={form.notes}
+        onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+        placeholder="Observações"
+      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" disabled={saving} onClick={() => void save()}>
+          {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+          Guardar dados
+        </Button>
+        <Button size="sm" variant="ghost" disabled={removing} onClick={() => void remove()}>
+          <Trash2 className="mr-2 size-4" /> Eliminar matéria-prima
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function IngredientsCard({
+  materialId,
+  ingredients,
+  allergens,
+}: {
+  materialId: string;
+  ingredients: { id: string; name: string; origin: string | null }[];
+  allergens: React.ReactNode;
+}) {
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [rows, setRows] = useState(ingredients.map((i) => ({ name: i.name, origin: i.origin ?? "" })));
+
+  async function save() {
+    const clean = rows.filter((r) => r.name.trim());
+    setSaving(true);
+    try {
+      await setMaterialIngredients({
+        data: {
+          materialId,
+          ingredients: clean.map((r) => ({ name: r.name.trim(), origin: r.origin.trim() || null })),
+        },
+      });
+      await queryClient.invalidateQueries();
+      toast.success("Ingredientes atualizados.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="panel p-4">
+      <h2 className="font-display mb-1 text-base font-semibold">Ingredientes e origens</h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Indique a origem de cada ingrediente para a rastreabilidade das MP compostas.
+      </p>
+      <div className="space-y-2">
+        {rows.length === 0 ? <p className="text-sm text-muted-foreground">Sem ingredientes registados.</p> : null}
+        {rows.map((row, index) => (
+          <div key={index} className="flex gap-2">
+            <Input
+              value={row.name}
+              onChange={(e) =>
+                setRows((rs) => rs.map((r, i) => (i === index ? { ...r, name: e.target.value } : r)))
+              }
+              placeholder="Ingrediente"
+            />
+            <Input
+              value={row.origin}
+              onChange={(e) =>
+                setRows((rs) => rs.map((r, i) => (i === index ? { ...r, origin: e.target.value } : r)))
+              }
+              placeholder="Origem"
+            />
+            <Button size="sm" variant="ghost" onClick={() => setRows((rs) => rs.filter((_, i) => i !== index))}>
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setRows((rs) => [...rs, { name: "", origin: "" }])}>
+          Adicionar ingrediente
+        </Button>
+        <Button size="sm" disabled={saving} onClick={() => void save()}>
+          {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+          Guardar ingredientes
+        </Button>
+      </div>
+      <div className="mt-3">{allergens}</div>
+    </section>
+  );
+}
+
+
 function FactoriesCard({
   materialId,
   factories,
