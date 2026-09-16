@@ -189,6 +189,7 @@ function DocumentForm({
   materials,
   fixedSupplierId,
   fixedMaterialId,
+  supplierRequired = false,
   supersedes,
   onClose,
 }: {
@@ -196,12 +197,15 @@ function DocumentForm({
   materials: { id: string; name: string }[];
   fixedSupplierId?: string | undefined;
   fixedMaterialId?: string | undefined;
+  supplierRequired?: boolean;
   supersedes?: DocumentRow | undefined;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [supplierId, setSupplierId] = useState(fixedSupplierId ?? supersedes?.supplier_id ?? "");
+  const [supplierId, setSupplierId] = useState(
+    fixedSupplierId ?? supersedes?.supplier_id ?? (supplierRequired && suppliers.length === 1 ? suppliers[0]!.id : ""),
+  );
   const [materialId, setMaterialId] = useState(fixedMaterialId ?? supersedes?.raw_material_id ?? "");
   const [docType, setDocType] = useState(supersedes?.doc_type ?? "ficha_tecnica");
   const [docTitle, setDocTitle] = useState(supersedes?.title ?? "");
@@ -216,10 +220,15 @@ function DocumentForm({
       toast.error("Indique o título e a versão do documento.");
       return;
     }
+    if (supplierRequired && !supplierId) {
+      toast.error("Indique o fornecedor a que este documento pertence.");
+      return;
+    }
     if (!supplierId && !materialId) {
       toast.error("Associe o documento a um fornecedor ou a uma matéria-prima.");
       return;
     }
+
     if (file && file.size > MAX_MB * 1024 * 1024) {
       toast.error(`O ficheiro excede ${MAX_MB} MB.`);
       return;
