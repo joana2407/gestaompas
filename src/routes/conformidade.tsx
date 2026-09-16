@@ -3,7 +3,9 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AlertTriangle, FileWarning, Search, ShieldAlert, Users } from "lucide-react";
 
+import { AllergenTags } from "@/components/AllergenTags";
 import { AppShell } from "@/components/AppShell";
+import { AllergenIcon, FactoryChip, TONE_CHIP, allergenTone } from "@/components/icons";
 import { ValidityBadge } from "@/components/ValidityBadge";
 import { Input } from "@/components/ui/input";
 import {
@@ -128,10 +130,17 @@ function CompliancePage() {
           ? "atencao"
           : status.estado;
 
+      const factories = data.materialFactories
+        .filter((mf) => mf.raw_material_id === material.id && mf.state !== "inativa")
+        .map((mf) => data.factories.find((f) => f.id === mf.factory_id))
+        .filter(Boolean)
+        .map((f) => ({ id: f!.id, code: f!.code, name: f!.name }));
+
       return {
         id: material.id,
         name: material.name,
         code: material.code,
+        factories,
         formulation: (material.allergens_formulation ?? []) as string[],
         contamination: (material.allergens_contamination ?? []) as string[],
         critical: Array.from(new Set(critical)),
@@ -282,11 +291,33 @@ function CompliancePage() {
                 <EstadoBadge estado={m.estado as Estado} />
               </div>
 
+              <div className="mt-2">
+                <AllergenTags
+                  formulation={m.formulation}
+                  contamination={m.contamination}
+                  empty="Alergénios não registados"
+                />
+              </div>
+
               <div className="mt-2 flex flex-wrap gap-1.5">
+                {m.factories.length > 0 ? (
+                  m.factories.map((f) => <FactoryChip key={f.id} code={f.code} name={f.code} />)
+                ) : (
+                  <span className="text-xs text-muted-foreground">Sem fábrica atribuída</span>
+                )}
                 {m.critical.length > 0 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-high/40 bg-high-soft px-2 py-0.5 text-xs font-medium text-high">
-                    <AlertTriangle className="size-3" /> Alergénios críticos:{" "}
-                    {m.critical.map((a) => alergenioLabel(a)).join(", ")}
+                  <span className="inline-flex items-center gap-1 rounded-full border border-high/40 bg-high-soft px-2 py-0.5 text-xs font-semibold text-high">
+                    <AlertTriangle className="size-3" /> Críticos:
+                    {m.critical.map((a) => (
+                      <span
+                        key={a}
+                        title={alergenioLabel(a)}
+                        className={`ml-1 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${TONE_CHIP[allergenTone(a)]}`}
+                      >
+                        <AllergenIcon id={a} className="size-3" />
+                        {alergenioLabel(a)}
+                      </span>
+                    ))}
                   </span>
                 ) : (
                   <span className="text-xs text-muted-foreground">Sem alergénios críticos declarados</span>
