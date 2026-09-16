@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { AlertTriangle, ArrowLeft, Loader2, Star, Trash2 } from "lucide-react";
 
 import { AllergenPicker, AllergenTags } from "@/components/AllergenTags";
-import { FactoryIcon } from "@/components/icons";
+import { FactoryIcon, TONE_CHIP, TONE_TEXT, factoryTone } from "@/components/icons";
 import { AppShell } from "@/components/AppShell";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { Button } from "@/components/ui/button";
@@ -429,9 +429,14 @@ function FactoriesCard({
       <h2 className="font-display mb-3 text-base font-semibold">Fábricas onde é utilizada</h2>
       <div className="space-y-2">
         {factories.map((factory) => (
-          <div key={factory.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-2">
-            <span className="flex items-center gap-2 text-sm">
-              <FactoryIcon code={factory.code} className="size-4 text-muted-foreground" />
+          <div
+            key={factory.id}
+            className={`flex items-center justify-between gap-3 rounded-lg border p-2 ${
+              (state[factory.id] ?? "nao") === "nao" ? "border-border" : TONE_CHIP[factoryTone(factory.code)]
+            }`}
+          >
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <FactoryIcon code={factory.code} className={`size-4 ${TONE_TEXT[factoryTone(factory.code)]}`} />
               {factory.name}
             </span>
             <select
