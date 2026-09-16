@@ -61,6 +61,25 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --color-tone-cereal: var(--tone-cereal);
+  --color-tone-cereal-soft: var(--tone-cereal-soft);
+  --color-tone-mar: var(--tone-mar);
+  --color-tone-mar-soft: var(--tone-mar-soft);
+  --color-tone-noz: var(--tone-noz);
+  --color-tone-noz-soft: var(--tone-noz-soft);
+  --color-tone-lacteo: var(--tone-lacteo);
+  --color-tone-lacteo-soft: var(--tone-lacteo-soft);
+  --color-tone-vegetal: var(--tone-vegetal);
+  --color-tone-vegetal-soft: var(--tone-vegetal-soft);
+  --color-tone-quimico: var(--tone-quimico);
+  --color-tone-quimico-soft: var(--tone-quimico-soft);
+  --color-tone-fab1: var(--tone-fab1);
+  --color-tone-fab1-soft: var(--tone-fab1-soft);
+  --color-tone-fab2: var(--tone-fab2);
+  --color-tone-fab2-soft: var(--tone-fab2-soft);
+  --color-tone-fab3: var(--tone-fab3);
+  --color-tone-fab3-soft: var(--tone-fab3-soft);
+
   --shadow-panel: 0 1px 3px oklch(0.18 0.015 240 / 0.08), 0 1px 2px -1px oklch(0.18 0.015 240 / 0.06);
   --shadow-xs: 0 1px 2px oklch(0.18 0.015 240 / 0.05);
 }
@@ -97,6 +116,25 @@
   --low-foreground: oklch(0.99 0.005 95);
   --low-soft: oklch(0.95 0.03 210);
 
+  --tone-cereal: oklch(0.48 0.13 70);
+  --tone-cereal-soft: oklch(0.95 0.05 80);
+  --tone-mar: oklch(0.48 0.12 230);
+  --tone-mar-soft: oklch(0.95 0.04 230);
+  --tone-noz: oklch(0.44 0.11 45);
+  --tone-noz-soft: oklch(0.94 0.04 50);
+  --tone-lacteo: oklch(0.5 0.1 95);
+  --tone-lacteo-soft: oklch(0.96 0.05 100);
+  --tone-vegetal: oklch(0.44 0.11 150);
+  --tone-vegetal-soft: oklch(0.94 0.05 150);
+  --tone-quimico: oklch(0.46 0.14 300);
+  --tone-quimico-soft: oklch(0.95 0.04 300);
+  --tone-fab1: oklch(0.46 0.13 255);
+  --tone-fab1-soft: oklch(0.95 0.04 255);
+  --tone-fab2: oklch(0.48 0.13 60);
+  --tone-fab2-soft: oklch(0.95 0.05 70);
+  --tone-fab3: oklch(0.44 0.12 160);
+  --tone-fab3-soft: oklch(0.94 0.05 160);
+
   --sidebar: oklch(0.98 0.01 100);
   --sidebar-foreground: oklch(0.24 0.02 150);
   --sidebar-primary: oklch(0.44 0.09 158);
@@ -130,6 +168,25 @@
   --high-soft: oklch(0.35 0.08 27);
   --medium-soft: oklch(0.36 0.07 75);
   --low-soft: oklch(0.33 0.05 210);
+  --tone-cereal: oklch(0.78 0.13 80);
+  --tone-cereal-soft: oklch(0.34 0.06 75);
+  --tone-mar: oklch(0.76 0.11 230);
+  --tone-mar-soft: oklch(0.32 0.05 230);
+  --tone-noz: oklch(0.76 0.1 50);
+  --tone-noz-soft: oklch(0.32 0.05 50);
+  --tone-lacteo: oklch(0.82 0.1 100);
+  --tone-lacteo-soft: oklch(0.34 0.05 100);
+  --tone-vegetal: oklch(0.76 0.11 155);
+  --tone-vegetal-soft: oklch(0.32 0.05 155);
+  --tone-quimico: oklch(0.76 0.12 300);
+  --tone-quimico-soft: oklch(0.33 0.05 300);
+  --tone-fab1: oklch(0.76 0.12 255);
+  --tone-fab1-soft: oklch(0.32 0.05 255);
+  --tone-fab2: oklch(0.8 0.12 70);
+  --tone-fab2-soft: oklch(0.34 0.06 70);
+  --tone-fab3: oklch(0.76 0.12 160);
+  --tone-fab3-soft: oklch(0.32 0.05 160);
+
   --sidebar: oklch(0.23 0.02 150);
   --sidebar-foreground: oklch(0.96 0.01 100);
   --sidebar-primary: oklch(0.7 0.12 158);
