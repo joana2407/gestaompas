@@ -97,6 +97,34 @@ export const VALIDITY_LABEL: Record<ValidityState, string> = {
   expirado: "Expirado",
 };
 
+/** Dias até expirar (negativo se já expirou); null quando não há data. */
+export function daysUntil(expiresOn: string | null | undefined): number | null {
+  if (!expiresOn) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${expiresOn}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return null;
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+function meses(days: number): string {
+  const value = Math.abs(days) / 30.44;
+  const rounded = value < 10 ? Math.round(value * 10) / 10 : Math.round(value);
+  return `${rounded.toString().replace(".", ",")} ${rounded === 1 ? "mês" : "meses"}`;
+}
+
+/** Texto de contagem em dias e meses, ex.: "faltam 45 dias (~1,5 meses)". */
+export function validityCountdown(expiresOn: string | null | undefined): string | null {
+  const days = daysUntil(expiresOn);
+  if (days === null) return null;
+  if (days === 0) return "expira hoje";
+  if (days < 0) {
+    const d = Math.abs(days);
+    return `expirado há ${d} dia${d === 1 ? "" : "s"} (~${meses(days)})`;
+  }
+  return `faltam ${days} dia${days === 1 ? "" : "s"} (~${meses(days)})`;
+}
+
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   const date = new Date(value.length <= 10 ? `${value}T00:00:00` : value);
