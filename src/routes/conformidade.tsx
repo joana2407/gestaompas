@@ -425,6 +425,7 @@ function CompliancePage() {
                           <AlertTriangle className="size-3" /> {r.critical.map((a) => alergenioLabel(a)).join(", ")}
                         </span>
                       ) : null}
+                      <NextExpiry docs={r.docs} label="Validade nesta MP" />
                       <DocLines docs={r.docs} missing={r.status.missing} />
                     </div>
                     <EstadoBadge estado={r.status.estado} />
