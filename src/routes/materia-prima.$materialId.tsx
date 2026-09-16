@@ -261,9 +261,19 @@ function BasicsCard({
         <Input
           value={form.origins}
           onChange={(e) => setForm((f) => ({ ...f, origins: e.target.value }))}
-          placeholder="Origens separadas por vírgula"
+          placeholder={
+            material.kind === "composta"
+              ? "Origem da MP (obrigatória) — separada por vírgula"
+              : "Origens separadas por vírgula"
+          }
         />
       </div>
+      {material.kind === "composta" ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Matéria-prima composta: indique a origem desta matéria-prima e, no quadro ao lado, a origem de cada
+          ingrediente.
+        </p>
+      ) : null}
       <Textarea
         className="mt-2"
         value={form.notes}
