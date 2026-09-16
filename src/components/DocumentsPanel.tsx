@@ -37,6 +37,8 @@ export function DocumentsPanel({
   materials,
   fixedSupplierId,
   fixedMaterialId,
+  supplierOptions,
+  supplierRequired = false,
   title = "Documentação",
 }: {
   documents: DocumentRow[];
@@ -44,6 +46,10 @@ export function DocumentsPanel({
   materials: { id: string; name: string }[];
   fixedSupplierId?: string | undefined;
   fixedMaterialId?: string | undefined;
+  /** Fornecedores que podem ser escolhidos no formulário (por omissão, todos). */
+  supplierOptions?: { id: string; name: string }[] | undefined;
+  /** Obriga a indicar o fornecedor do documento (fichas técnicas de MP). */
+  supplierRequired?: boolean;
   title?: string;
 }) {
   const [showArchived, setShowArchived] = useState(false);
@@ -68,14 +74,16 @@ export function DocumentsPanel({
 
       {form.open ? (
         <DocumentForm
-          suppliers={suppliers}
+          suppliers={supplierOptions ?? suppliers}
           materials={materials}
           fixedSupplierId={fixedSupplierId}
           fixedMaterialId={fixedMaterialId}
+          supplierRequired={supplierRequired}
           supersedes={form.supersedes}
           onClose={() => setForm({ open: false })}
         />
       ) : null}
+
 
       {visible.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
