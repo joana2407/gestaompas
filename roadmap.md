@@ -22,5 +22,5 @@
 - [x] Importar alergénios por MP a partir das tabelas das 3 fábricas (formulação vs contaminação) e corrigir as fábricas de cada MP
 - [x] Criar as 6 MP que faltavam (Softyplus, Ferment Souer, Massa Mãe fresca ISCO, Desmoldante Goldwax, Fermento em Pó, Massa Mãe desidratada de Milho) com alergénios, fornecedor e fábrica — a validar pela qualidade
 - [ ] Validar as MP que não constam das tabelas de alergénios (embalagens e outras)
-- [ ] Editar/eliminar MP: dados base e origens, ingredientes com origem, alergénios, fornecedores (preferencial e secundários) com origem e validade
-- [ ] Documentação técnica de cada MP obrigatoriamente associada ao fornecedor
+- [x] Editar/eliminar MP: dados base e origens, ingredientes com origem, alergénios, fornecedores (preferencial e secundários) com origem e validade
+- [x] Documentação técnica de cada MP obrigatoriamente associada ao fornecedor
