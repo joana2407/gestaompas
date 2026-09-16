@@ -332,16 +332,38 @@ function MaterialCard({
       ) : (
         <p className="mt-1 text-sm">
           <span className="text-muted-foreground">Ingredientes: </span>
-          {ingredients.length > 0 ? ingredients.map((i) => i.name).join(", ") : "—"}{" "}
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="ml-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
-          >
-            editar
-          </button>
+          {ingredients.length > 0
+            ? ingredients.map((i) => (i.origin ? `${i.name} (${i.origin})` : i.name)).join(", ")
+            : "—"}{" "}
+          {material.kind === "composta" ? (
+            <Link
+              to="/materia-prima/$materialId"
+              params={{ materialId: material.id }}
+              className="ml-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              editar origens
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="ml-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              editar
+            </button>
+          )}
         </p>
       )}
+      {material.kind === "composta" && missingIngredientOrigin ? (
+        <p className="mt-2 rounded-lg border border-high/30 bg-high-soft p-2 text-[11px] text-high">
+          Falta a origem de alguns ingredientes desta matéria-prima composta.
+        </p>
+      ) : null}
+      {material.kind === "composta" && material.origins.length === 0 ? (
+        <p className="mt-2 rounded-lg border border-high/30 bg-high-soft p-2 text-[11px] text-high">
+          Falta a origem da própria matéria-prima composta.
+        </p>
+      ) : null}
 
       {material.notes ? <p className="mt-2 text-xs text-muted-foreground">{material.notes}</p> : null}
     </article>
