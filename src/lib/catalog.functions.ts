@@ -301,6 +301,123 @@ export const removeMaterialSupplier = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** Atualiza a ligação MP ↔ fornecedor já existente (referência, origem, validade, preferencial). */
+export const updateMaterialSupplierLink = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        materialId: z.string().uuid(),
+        supplier_reference: z.string().nullish(),
+        origin_country: z.string().nullish(),
+        shelf_life_months: z.number().int().positive().nullish(),
+        preferred: z.boolean(),
+        active: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const db = await gate();
+    if (data.preferred) {
+      await db.from("material_suppliers").update({ preferred: false }).eq("raw_material_id", data.materialId);
+    }
+    const { error } = await db
+      .from("material_suppliers")
+      .update({
+        supplier_reference: data.supplier_reference ?? null,
+        origin_country: data.origin_country ?? null,
+        shelf_life_months: data.shelf_life_months ?? null,
+        preferred: data.preferred,
+        active: data.active,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+/** Dados base da MP: nome, código, categoria, origens e notas. */
+export const updateMaterialBasics = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        materialId: z.string().uuid(),
+        name: z.string().min(1),
+        code: z.string().nullish(),
+        category: z.string().nullish(),
+        origins: z.array(z.string()),
+        notes: z.string().nullish(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const db = await gate();
+    const { error } = await db
+      .from("raw_materials")
+      .update({
+        name: data.name,
+        code: data.code ?? null,
+        category: data.category ?? null,
+        origins: data.origins,
+        notes: data.notes ?? null,
+      })
+      .eq("id", data.materialId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+/** Ingredientes com origem própria; o tipo da MP é recalculado. */
+export const setMaterialIngredients = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        materialId: z.string().uuid(),
+        ingredients: z.array(z.object({ name: z.string().min(1), origin: z.string().nullish() })),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const db = await gate();
+    await db.from("raw_material_ingredients").delete().eq("raw_material_id", data.materialId);
+    if (data.ingredients.length > 0) {
+      const { error } = await db.from("raw_material_ingredients").insert(
+        data.ingredients.map((i) => ({
+          raw_material_id: data.materialId,
+          name: i.name,
+          origin: i.origin?.trim() || null,
+        })),
+      );
+      if (error) throw new Error(error.message);
+    }
+    const { error: kindError } = await db
+      .from("raw_materials")
+      .update({ kind: data.ingredients.length > 1 ? "composta" : "simples" })
+      .eq("id", data.materialId);
+    if (kindError) throw new Error(kindError.message);
+    return { ok: true as const };
+  });
+
+/** Elimina a MP e tudo o que lhe está associado (ligações e documentos). */
+export const deleteMaterial = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ materialId: z.string().uuid() }).parse(data))
+  .handler(async ({ data }) => {
+    const db = await gate();
+    const { data: docs } = await db
+      .from("documents")
+      .select("id, storage_path")
+      .eq("raw_material_id", data.materialId);
+    const paths = (docs ?? []).map((d) => d.storage_path).filter((p): p is string => Boolean(p));
+    if (paths.length > 0) await db.storage.from(BUCKET).remove(paths);
+    await db.from("documents").delete().eq("raw_material_id", data.materialId);
+    await db.from("material_suppliers").delete().eq("raw_material_id", data.materialId);
+    await db.from("material_factories").delete().eq("raw_material_id", data.materialId);
+    await db.from("raw_material_ingredients").delete().eq("raw_material_id", data.materialId);
+    await db.from("risk_findings").update({ raw_material_id: null }).eq("raw_material_id", data.materialId);
+    const { error } = await db.from("raw_materials").delete().eq("id", data.materialId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+
 // ─── DOCUMENTAÇÃO ────────────────────────────────────────────────────────────
 
 const DOC_COLS =
