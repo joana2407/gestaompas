@@ -337,8 +337,15 @@ function IngredientsCard({
     <section className="panel p-4">
       <h2 className="font-display mb-1 text-base font-semibold">Ingredientes e origens</h2>
       <p className="mb-3 text-xs text-muted-foreground">
-        Indique a origem de cada ingrediente para a rastreabilidade das MP compostas.
+        {composta
+          ? "Matéria-prima composta: a origem de cada ingrediente é obrigatória."
+          : "Indique a origem de cada ingrediente para reforçar a rastreabilidade."}
       </p>
+      {missingOrigins.length > 0 ? (
+        <div className="mb-3 rounded-lg border border-high/30 bg-high-soft p-3 text-xs text-high">
+          Falta a origem de: {missingOrigins.join(", ")}.
+        </div>
+      ) : null}
       <div className="space-y-2">
         {rows.length === 0 ? <p className="text-sm text-muted-foreground">Sem ingredientes registados.</p> : null}
         {rows.map((row, index) => (
