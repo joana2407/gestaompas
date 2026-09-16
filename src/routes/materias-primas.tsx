@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createMaterial, replaceInventory, setIngredients } from "@/lib/data.functions";
 import { catalogQuery } from "@/lib/queries";
 import { AllergenTags } from "@/components/AllergenTags";
+import { FactoryChip } from "@/components/icons";
 import { parseInventoryWorkbook } from "@/lib/inventory-import";
 
 export const Route = createFileRoute("/materias-primas")({
