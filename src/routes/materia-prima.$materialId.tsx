@@ -362,7 +362,8 @@ function IngredientsCard({
               onChange={(e) =>
                 setRows((rs) => rs.map((r, i) => (i === index ? { ...r, origin: e.target.value } : r)))
               }
-              placeholder="Origem"
+              placeholder={composta ? "Origem (obrigatória)" : "Origem"}
+              aria-invalid={composta && !!row.name.trim() && !row.origin.trim()}
             />
             <Button size="sm" variant="ghost" onClick={() => setRows((rs) => rs.filter((_, i) => i !== index))}>
               <Trash2 className="size-4" />
