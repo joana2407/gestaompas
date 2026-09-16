@@ -162,17 +162,33 @@ function NewMaterialForm({ onClose }: { onClose: () => void }) {
           .split(",")
           .map((v) => v.trim())
           .filter(Boolean);
-      const ingredientNames = list(ingredients);
+      const parsedIngredients = list(ingredients).map((entry) => {
+        const match = entry.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+        return {
+          name: (match?.[1] ?? entry).trim(),
+          origin: match?.[2]?.trim() || null,
+        };
+      });
+      const kind = parsedIngredients.length > 1 ? "composta" : "simples";
+      const originList = list(origins);
+      if (kind === "composta" && originList.length === 0) {
+        toast.error("Nas matérias-primas compostas indique a origem da própria matéria-prima.");
+        return;
+      }
+      if (kind === "composta" && parsedIngredients.some((i) => !i.origin)) {
+        toast.error("Indique a origem de cada ingrediente, por exemplo: Farinha (Portugal), Açúcar (Brasil).");
+        return;
+      }
       await createMaterial({
         data: {
           name: name.trim(),
           code: code.trim() || null,
           category: category.trim() || null,
-          kind: ingredientNames.length > 1 ? "composta" : "simples",
-          origins: list(origins),
+          kind,
+          origins: originList,
           supplier: supplier.trim() || null,
           notes: notes.trim() || null,
-          ingredients: ingredientNames.map((n) => ({ name: n, origin: null })),
+          ingredients: parsedIngredients,
         },
       });
       await queryClient.invalidateQueries();
