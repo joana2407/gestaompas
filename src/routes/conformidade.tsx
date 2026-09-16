@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import {
   ALERGENIOS_CRITICOS,
   alergenioLabel,
+  daysUntil,
   formatDate,
   tipoDocumentoLabel,
+  validityCountdown,
   validityState,
   type AlergenioId,
 } from "@/lib/domain";
@@ -287,6 +289,7 @@ function CompliancePage() {
                     {m.code ? `${m.code} · ` : ""}
                     {m.suppliers.length} fornecedor(es) · {m.docs.length} documento(s)
                   </p>
+                  <NextExpiry docs={m.docs} label="Validade da MP" />
                 </div>
                 <EstadoBadge estado={m.estado as Estado} />
               </div>
@@ -352,6 +355,7 @@ function CompliancePage() {
                           {s.origin ? ` · origem ${s.origin}` : ""}
                           {s.reference ? ` · ref. ${s.reference}` : ""}
                         </span>
+                        <NextExpiry docs={s.docs} label="Validade deste fornecedor" />
                         <DocLines docs={s.docs} missing={s.status.missing} />
                       </div>
                       <EstadoBadge estado={s.status.estado} />
@@ -380,6 +384,7 @@ function CompliancePage() {
                     {s.code ? `${s.code} · ` : ""}
                     {s.rows.length} MP · {s.docs.length} documento(s)
                   </p>
+                  <NextExpiry docs={s.docs} label="Validade do fornecedor" />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {s.expired > 0 ? (
@@ -423,6 +428,7 @@ function CompliancePage() {
                           <AlertTriangle className="size-3" /> {r.critical.map((a) => alergenioLabel(a)).join(", ")}
                         </span>
                       ) : null}
+                      <NextExpiry docs={r.docs} label="Validade nesta MP" />
                       <DocLines docs={r.docs} missing={r.status.missing} />
                     </div>
                     <EstadoBadge estado={r.status.estado} />
@@ -451,16 +457,76 @@ function DocLines({ docs, missing }: { docs: DocRow[]; missing: readonly string[
         docs
           .slice()
           .sort((a, b) => (a.expires_on ?? "9999").localeCompare(b.expires_on ?? "9999"))
-          .map((doc) => (
-            <div key={doc.id} className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{tipoDocumentoLabel(doc.doc_type)}</span>
-              <span>
-                {doc.title} · v{doc.version} · {formatDate(doc.expires_on)}
-              </span>
-              <ValidityBadge expiresOn={doc.expires_on} />
-            </div>
-          ))
+          .map((doc) => {
+            const countdown = validityCountdown(doc.expires_on);
+            const state = validityState(doc.expires_on);
+            return (
+              <div key={doc.id} className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{tipoDocumentoLabel(doc.doc_type)}</span>
+                <span>
+                  {doc.title} · v{doc.version} · {formatDate(doc.expires_on)}
+                </span>
+                <ValidityBadge expiresOn={doc.expires_on} />
+                {countdown ? (
+                  <span
+                    className={
+                      state === "expirado"
+                        ? "font-medium text-high"
+                        : state === "expira_30" || state === "expira_60"
+                          ? "font-medium text-medium-foreground"
+                          : ""
+                    }
+                  >
+                    {countdown}
+                  </span>
+                ) : (
+                  <span>sem data de validade</span>
+                )}
+              </div>
+            );
+          })
       )}
+    </div>
+  );
+}
+
+/** Resumo da validade mais próxima de um conjunto de documentos (MP ou fornecedor). */
+function NextExpiry({ docs, label }: { docs: DocRow[]; label: string }) {
+  const dated = docs
+    .filter((d) => d.expires_on)
+    .slice()
+    .sort((a, b) => (a.expires_on ?? "").localeCompare(b.expires_on ?? ""));
+  const expired = dated.filter((d) => validityState(d.expires_on) === "expirado");
+  const next = expired[0] ?? dated[0];
+  if (!next) {
+    return (
+      <p className="mt-1 text-xs text-muted-foreground">
+        {label}: sem validades registadas ({docs.length} documento(s))
+      </p>
+    );
+  }
+  const state = validityState(next.expires_on);
+  const days = daysUntil(next.expires_on);
+  const tone =
+    state === "expirado"
+      ? "border-high/40 bg-high-soft text-high"
+      : state === "expira_30" || state === "expira_60"
+        ? "border-medium/50 bg-medium-soft text-medium-foreground"
+        : "border-low/30 bg-low-soft text-low";
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-muted-foreground">
+        {label}: <span className="font-medium text-foreground">{tipoDocumentoLabel(next.doc_type)}</span> ·{" "}
+        {formatDate(next.expires_on)}
+      </span>
+      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-medium ${tone}`}>
+        {validityCountdown(next.expires_on)}
+      </span>
+      {expired.length > 0 ? (
+        <span className="text-high">{expired.length} documento(s) já expirado(s)</span>
+      ) : days !== null && days <= 60 ? (
+        <span className="text-medium-foreground">renovar com o fornecedor</span>
+      ) : null}
     </div>
   );
 }
