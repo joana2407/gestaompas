@@ -307,9 +307,7 @@ function MaterialCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {factories.length > 0 ? (
-          <span className="rounded-md border border-border bg-secondary px-1.5 py-0.5 text-[11px] font-semibold">
-            {factories.join(" · ")}
-          </span>
+          factories.map((code) => <FactoryChip key={code} code={code} name={code} />)
         ) : (
           <span className="text-[11px] text-muted-foreground">Sem fábrica atribuída</span>
         )}
