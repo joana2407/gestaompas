@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,15 +9,21 @@ import { AppShell } from "@/components/AppShell";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  deleteMaterial,
   removeMaterialSupplier,
   setMaterialAllergens,
   setMaterialFactories,
+  setMaterialIngredients,
+  updateMaterialBasics,
+  updateMaterialSupplierLink,
   upsertMaterialSupplier,
 } from "@/lib/catalog.functions";
 import { ESTADOS_MP_FABRICA, alergenioLabel } from "@/lib/domain";
 import { gateStatus } from "@/lib/gate.functions";
 import { materialDetailQuery } from "@/lib/queries";
+
 
 export const Route = createFileRoute("/materia-prima/$materialId")({
   head: () => ({
