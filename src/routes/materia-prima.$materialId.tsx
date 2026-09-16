@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { AlertTriangle, ArrowLeft, Loader2, Star, Trash2 } from "lucide-react";
 
 import { AllergenPicker, AllergenTags } from "@/components/AllergenTags";
-import { FactoryIcon } from "@/components/icons";
+import { FactoryIcon, TONE_CHIP, TONE_TEXT, factoryTone } from "@/components/icons";
 import { AppShell } from "@/components/AppShell";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { Button } from "@/components/ui/button";
@@ -133,6 +133,7 @@ function MaterialDetail() {
         <BasicsCard material={material} />
         <IngredientsCard
           materialId={materialId}
+          kind={material.kind}
           ingredients={material.raw_material_ingredients ?? []}
           allergens={
             <AllergenTags
@@ -172,6 +173,7 @@ function BasicsCard({
     name: string;
     code: string | null;
     category: string | null;
+    kind: string;
     origins: string[];
     notes: string | null;
   };
@@ -193,6 +195,14 @@ function BasicsCard({
       toast.error("Indique o nome da matéria-prima.");
       return;
     }
+    const origins = form.origins
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (material.kind === "composta" && origins.length === 0) {
+      toast.error("Nas matérias-primas compostas é obrigatório indicar a origem da própria matéria-prima.");
+      return;
+    }
     setSaving(true);
     try {
       await updateMaterialBasics({
@@ -201,10 +211,7 @@ function BasicsCard({
           name: form.name.trim(),
           code: form.code.trim() || null,
           category: form.category.trim() || null,
-          origins: form.origins
-            .split(",")
-            .map((v) => v.trim())
-            .filter(Boolean),
+          origins,
           notes: form.notes.trim() || null,
         },
       });
@@ -254,9 +261,19 @@ function BasicsCard({
         <Input
           value={form.origins}
           onChange={(e) => setForm((f) => ({ ...f, origins: e.target.value }))}
-          placeholder="Origens separadas por vírgula"
+          placeholder={
+            material.kind === "composta"
+              ? "Origem da MP (obrigatória) — separada por vírgula"
+              : "Origens separadas por vírgula"
+          }
         />
       </div>
+      {material.kind === "composta" ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Matéria-prima composta: indique a origem desta matéria-prima e, no quadro ao lado, a origem de cada
+          ingrediente.
+        </p>
+      ) : null}
       <Textarea
         className="mt-2"
         value={form.notes}
@@ -278,19 +295,27 @@ function BasicsCard({
 
 function IngredientsCard({
   materialId,
+  kind,
   ingredients,
   allergens,
 }: {
   materialId: string;
+  kind: string;
   ingredients: { id: string; name: string; origin: string | null }[];
   allergens: React.ReactNode;
 }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState(ingredients.map((i) => ({ name: i.name, origin: i.origin ?? "" })));
+  const composta = kind === "composta";
+  const missingOrigins = composta ? rows.filter((r) => r.name.trim() && !r.origin.trim()).map((r) => r.name.trim()) : [];
 
   async function save() {
     const clean = rows.filter((r) => r.name.trim());
+    if (composta && clean.some((r) => !r.origin.trim())) {
+      toast.error("Nas matérias-primas compostas indique a origem de cada ingrediente.");
+      return;
+    }
     setSaving(true);
     try {
       await setMaterialIngredients({
@@ -312,8 +337,15 @@ function IngredientsCard({
     <section className="panel p-4">
       <h2 className="font-display mb-1 text-base font-semibold">Ingredientes e origens</h2>
       <p className="mb-3 text-xs text-muted-foreground">
-        Indique a origem de cada ingrediente para a rastreabilidade das MP compostas.
+        {composta
+          ? "Matéria-prima composta: a origem de cada ingrediente é obrigatória."
+          : "Indique a origem de cada ingrediente para reforçar a rastreabilidade."}
       </p>
+      {missingOrigins.length > 0 ? (
+        <div className="mb-3 rounded-lg border border-high/30 bg-high-soft p-3 text-xs text-high">
+          Falta a origem de: {missingOrigins.join(", ")}.
+        </div>
+      ) : null}
       <div className="space-y-2">
         {rows.length === 0 ? <p className="text-sm text-muted-foreground">Sem ingredientes registados.</p> : null}
         {rows.map((row, index) => (
@@ -330,7 +362,8 @@ function IngredientsCard({
               onChange={(e) =>
                 setRows((rs) => rs.map((r, i) => (i === index ? { ...r, origin: e.target.value } : r)))
               }
-              placeholder="Origem"
+              placeholder={composta ? "Origem (obrigatória)" : "Origem"}
+              aria-invalid={composta && !!row.name.trim() && !row.origin.trim()}
             />
             <Button size="sm" variant="ghost" onClick={() => setRows((rs) => rs.filter((_, i) => i !== index))}>
               <Trash2 className="size-4" />
@@ -396,9 +429,14 @@ function FactoriesCard({
       <h2 className="font-display mb-3 text-base font-semibold">Fábricas onde é utilizada</h2>
       <div className="space-y-2">
         {factories.map((factory) => (
-          <div key={factory.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-2">
-            <span className="flex items-center gap-2 text-sm">
-              <FactoryIcon code={factory.code} className="size-4 text-muted-foreground" />
+          <div
+            key={factory.id}
+            className={`flex items-center justify-between gap-3 rounded-lg border p-2 ${
+              (state[factory.id] ?? "nao") === "nao" ? "border-border" : TONE_CHIP[factoryTone(factory.code)]
+            }`}
+          >
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <FactoryIcon code={factory.code} className={`size-4 ${TONE_TEXT[factoryTone(factory.code)]}`} />
               {factory.name}
             </span>
             <select

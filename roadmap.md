@@ -26,3 +26,5 @@
 - [x] Documentação técnica de cada MP obrigatoriamente associada ao fornecedor
 - [x] Ícones representativos das fábricas e dos 14 alergénios (etiquetas, seletor, fábricas, ficha de MP)
 - [x] Painel de conformidade por MP e por fornecedor: documentos expirados, fornecedores secundários, alergénios críticos, estado documental
+- [x] Origem obrigatória por MP e por cada ingrediente nas MP compostas
+- [x] Esquema de cores mais legível e ícones de alergénios/fábricas aplicados a todos os painéis

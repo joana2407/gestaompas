@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { AppShell } from "@/components/AppShell";
-import { AllergenIcon, FactoryIcon } from "@/components/icons";
+import { AllergenIcon, FactoryIcon, TONE_CHIP, allergenTone, factoryTone } from "@/components/icons";
 import { ESTADOS_MP_FABRICA, alergenioLabel } from "@/lib/domain";
 import { gateStatus } from "@/lib/gate.functions";
 import { catalogQuery } from "@/lib/queries";
@@ -52,7 +52,9 @@ function FactoriesPage() {
           return (
             <section key={factory.id} className="panel p-4">
               <div className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <span
+                  className={`grid size-10 shrink-0 place-items-center rounded-xl border ${TONE_CHIP[factoryTone(factory.code)]}`}
+                >
                   <FactoryIcon code={factory.code} className="size-5" />
                 </span>
                 <div className="min-w-0">
@@ -67,7 +69,7 @@ function FactoriesPage() {
                     blocked.map((id) => (
                       <span
                         key={id}
-                        className="inline-flex items-center gap-1 rounded-md border border-high/30 bg-high-soft px-1.5 py-0.5 text-[11px] font-semibold text-high"
+                        className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${TONE_CHIP[allergenTone(id)]} ring-1 ring-high/40`}
                       >
                         <AllergenIcon id={id} className="size-3" />
                         {alergenioLabel(id)}

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createMaterial, replaceInventory, setIngredients } from "@/lib/data.functions";
 import { catalogQuery } from "@/lib/queries";
 import { AllergenTags } from "@/components/AllergenTags";
+import { FactoryChip } from "@/components/icons";
 import { parseInventoryWorkbook } from "@/lib/inventory-import";
 
 export const Route = createFileRoute("/materias-primas")({
@@ -162,17 +163,33 @@ function NewMaterialForm({ onClose }: { onClose: () => void }) {
           .split(",")
           .map((v) => v.trim())
           .filter(Boolean);
-      const ingredientNames = list(ingredients);
+      const parsedIngredients = list(ingredients).map((entry) => {
+        const match = entry.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+        return {
+          name: (match?.[1] ?? entry).trim(),
+          origin: match?.[2]?.trim() || null,
+        };
+      });
+      const kind = parsedIngredients.length > 1 ? "composta" : "simples";
+      const originList = list(origins);
+      if (kind === "composta" && originList.length === 0) {
+        toast.error("Nas matérias-primas compostas indique a origem da própria matéria-prima.");
+        return;
+      }
+      if (kind === "composta" && parsedIngredients.some((i) => !i.origin)) {
+        toast.error("Indique a origem de cada ingrediente, por exemplo: Farinha (Portugal), Açúcar (Brasil).");
+        return;
+      }
       await createMaterial({
         data: {
           name: name.trim(),
           code: code.trim() || null,
           category: category.trim() || null,
-          kind: ingredientNames.length > 1 ? "composta" : "simples",
-          origins: list(origins),
+          kind,
+          origins: originList,
           supplier: supplier.trim() || null,
           notes: notes.trim() || null,
-          ingredients: ingredientNames.map((n) => ({ name: n, origin: null })),
+          ingredients: parsedIngredients,
         },
       });
       await queryClient.invalidateQueries();
@@ -201,7 +218,7 @@ function NewMaterialForm({ onClose }: { onClose: () => void }) {
         <Input
           value={ingredients}
           onChange={(e) => setIngredients(e.target.value)}
-          placeholder="Ingredientes separados por vírgula (deixe vazio se for simples)"
+          placeholder="Ingredientes com origem: Farinha (Portugal), Açúcar (Brasil)"
         />
       </div>
       <Textarea
@@ -247,6 +264,7 @@ function MaterialCard({
 }) {
   const queryClient = useQueryClient();
   const ingredients = material.raw_material_ingredients ?? [];
+  const missingIngredientOrigin = ingredients.some((i) => !i.origin);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(ingredients.map((i) => i.name).join(", "));
   const [saving, setSaving] = useState(false);
@@ -290,9 +308,7 @@ function MaterialCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {factories.length > 0 ? (
-          <span className="rounded-md border border-border bg-secondary px-1.5 py-0.5 text-[11px] font-semibold">
-            {factories.join(" · ")}
-          </span>
+          factories.map((code) => <FactoryChip key={code} code={code} name={code} />)
         ) : (
           <span className="text-[11px] text-muted-foreground">Sem fábrica atribuída</span>
         )}
@@ -332,16 +348,38 @@ function MaterialCard({
       ) : (
         <p className="mt-1 text-sm">
           <span className="text-muted-foreground">Ingredientes: </span>
-          {ingredients.length > 0 ? ingredients.map((i) => i.name).join(", ") : "—"}{" "}
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="ml-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
-          >
-            editar
-          </button>
+          {ingredients.length > 0
+            ? ingredients.map((i) => (i.origin ? `${i.name} (${i.origin})` : i.name)).join(", ")
+            : "—"}{" "}
+          {material.kind === "composta" ? (
+            <Link
+              to="/materia-prima/$materialId"
+              params={{ materialId: material.id }}
+              className="ml-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              editar origens
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="ml-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              editar
+            </button>
+          )}
         </p>
       )}
+      {material.kind === "composta" && missingIngredientOrigin ? (
+        <p className="mt-2 rounded-lg border border-high/30 bg-high-soft p-2 text-[11px] text-high">
+          Falta a origem de alguns ingredientes desta matéria-prima composta.
+        </p>
+      ) : null}
+      {material.kind === "composta" && material.origins.length === 0 ? (
+        <p className="mt-2 rounded-lg border border-high/30 bg-high-soft p-2 text-[11px] text-high">
+          Falta a origem da própria matéria-prima composta.
+        </p>
+      ) : null}
 
       {material.notes ? <p className="mt-2 text-xs text-muted-foreground">{material.notes}</p> : null}
     </article>
