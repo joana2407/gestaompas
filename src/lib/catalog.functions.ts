@@ -187,7 +187,7 @@ export const getMaterialDetail = createServerFn({ method: "GET" })
       db
         .from("material_suppliers")
         .select(
-          "id, supplier_id, supplier_reference, origin_country, shelf_life_months, preferred, suppliers(id, name, code, status)",
+          "id, supplier_id, supplier_reference, origin_country, shelf_life_months, preferred, active, suppliers(id, name, code, status)",
         )
         .eq("raw_material_id", data.materialId),
       db
