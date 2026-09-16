@@ -271,7 +271,7 @@ function DocumentForm({
             onChange={(e) => setSupplierId(e.target.value)}
             className="rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="">Sem fornecedor associado</option>
+            <option value="">{supplierRequired ? "Escolher fornecedor (obrigatório)" : "Sem fornecedor associado"}</option>
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
