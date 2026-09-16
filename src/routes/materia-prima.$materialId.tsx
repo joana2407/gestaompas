@@ -128,25 +128,19 @@ function MaterialDetail() {
         />
       </div>
 
-      <section className="panel my-4 p-4">
-        <h2 className="font-display mb-1 text-base font-semibold">Composição e origens</h2>
-        <p className="text-sm">
-          <span className="text-muted-foreground">Origens: </span>
-          {material.origins.length > 0 ? material.origins.join(", ") : "—"}
-        </p>
-        <p className="mt-1 text-sm">
-          <span className="text-muted-foreground">Ingredientes: </span>
-          {(material.raw_material_ingredients ?? []).length > 0
-            ? (material.raw_material_ingredients ?? []).map((i) => i.name).join(", ")
-            : "—"}
-        </p>
-        <div className="mt-3">
-          <AllergenTags
-            formulation={material.allergens_formulation ?? []}
-            contamination={material.allergens_contamination ?? []}
-          />
-        </div>
-      </section>
+      <div className="my-4 grid gap-4 lg:grid-cols-2">
+        <BasicsCard material={material} />
+        <IngredientsCard
+          materialId={materialId}
+          ingredients={material.raw_material_ingredients ?? []}
+          allergens={
+            <AllergenTags
+              formulation={material.allergens_formulation ?? []}
+              contamination={material.allergens_contamination ?? []}
+            />
+          }
+        />
+      </div>
 
       <SuppliersCard materialId={materialId} links={data.materialSuppliers} suppliers={data.suppliers} />
 
@@ -154,11 +148,17 @@ function MaterialDetail() {
         <DocumentsPanel
           documents={data.documents}
           suppliers={data.suppliers}
+          supplierOptions={data.materialSuppliers.map((l) => ({
+            id: l.supplier_id,
+            name: l.suppliers?.name ?? "Fornecedor",
+          }))}
+          supplierRequired
           materials={[{ id: material.id, name: material.name }]}
           fixedMaterialId={material.id}
-          title="Documentação da matéria-prima"
+          title="Documentação técnica da matéria-prima (por fornecedor)"
         />
       </div>
+
     </AppShell>
   );
 }
