@@ -195,6 +195,14 @@ function BasicsCard({
       toast.error("Indique o nome da matéria-prima.");
       return;
     }
+    const origins = form.origins
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (material.kind === "composta" && origins.length === 0) {
+      toast.error("Nas matérias-primas compostas é obrigatório indicar a origem da própria matéria-prima.");
+      return;
+    }
     setSaving(true);
     try {
       await updateMaterialBasics({
@@ -203,10 +211,7 @@ function BasicsCard({
           name: form.name.trim(),
           code: form.code.trim() || null,
           category: form.category.trim() || null,
-          origins: form.origins
-            .split(",")
-            .map((v) => v.trim())
-            .filter(Boolean),
+          origins,
           notes: form.notes.trim() || null,
         },
       });
