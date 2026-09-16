@@ -354,6 +354,7 @@ function CompliancePage() {
                           {s.origin ? ` · origem ${s.origin}` : ""}
                           {s.reference ? ` · ref. ${s.reference}` : ""}
                         </span>
+                        <NextExpiry docs={s.docs} label="Validade deste fornecedor" />
                         <DocLines docs={s.docs} missing={s.status.missing} />
                       </div>
                       <EstadoBadge estado={s.status.estado} />
