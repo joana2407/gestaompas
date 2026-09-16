@@ -133,6 +133,7 @@ function MaterialDetail() {
         <BasicsCard material={material} />
         <IngredientsCard
           materialId={materialId}
+          kind={material.kind}
           ingredients={material.raw_material_ingredients ?? []}
           allergens={
             <AllergenTags
