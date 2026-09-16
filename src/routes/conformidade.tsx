@@ -289,6 +289,7 @@ function CompliancePage() {
                     {m.code ? `${m.code} · ` : ""}
                     {m.suppliers.length} fornecedor(es) · {m.docs.length} documento(s)
                   </p>
+                  <NextExpiry docs={m.docs} label="Validade da MP" />
                 </div>
                 <EstadoBadge estado={m.estado as Estado} />
               </div>
