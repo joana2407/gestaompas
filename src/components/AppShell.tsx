@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Factory, FileText, Home, LogOut, Menu, Package, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
+import { ChevronRight, Factory, FileText, Home, LogOut, Menu, Package, Settings, ShieldCheck, Upload, Users, X, Radar } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ const NAV = [
   { to: "/materias-primas", label: "Matérias-primas", group: "gestao", icon: Package },
   { to: "/fornecedores", label: "Fornecedores", group: "gestao", icon: Users },
   { to: "/nova-analise", label: "Nova análise", group: "documentos", icon: Upload },
+  { to: "/vigilancia", label: "Vigilância RASFF", group: "documentos", icon: Radar },
   { to: "/documentos", label: "Documentação", group: "documentos", icon: FileText },
   { to: "/conformidade", label: "Conformidade", group: "documentos", icon: ShieldCheck },
   { to: "/configuracao", label: "Utilizadores", group: "config", icon: Settings },

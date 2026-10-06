@@ -208,3 +208,72 @@ export const setAnalysisStatus = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+function weekNum(label: string | null, start: string | null) {
+  const m = (label ?? "").match(/(\d{1,2})\s*\/\s*(\d{4})/);
+  if (m) return { week: Number(m[1]), year: Number(m[2]) };
+  if (start) {
+    const d = new Date(start + "T00:00:00Z");
+    const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 4 - (d.getUTCDay() || 7)));
+    const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return { week: Math.ceil(((t.getTime() - y0.getTime()) / 86400000 + 1) / 7), year: t.getUTCFullYear() };
+  }
+  return null;
+}
+
+export const listSurveillance = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await gate();
+  const { data: analyses, error } = await db
+    .from("analyses")
+    .select("id, week_label, week_start")
+    .order("week_start", { ascending: false });
+  if (error) throw new Error(error.message);
+  const weeks = (analyses ?? [])
+    .map((a) => ({ ...a, wk: weekNum(a.week_label, a.week_start) }))
+    .filter((a) => a.wk && (a.wk.year > 2026 || (a.wk.year === 2026 && a.wk.week >= 38)));
+  const ids = weeks.map((w) => w.id);
+  if (!ids.length) return [];
+  const [alerts, findings] = await Promise.all([
+    db.from("rasff_alerts")
+      .select("id, analysis_id, reference, product, hazard, origin_country, notified_on, closed, closed_at, closed_by")
+      .in("analysis_id", ids).limit(10000),
+    db.from("risk_findings")
+      .select("alert_id, raw_material_name, risk_level").in("analysis_id", ids).limit(10000),
+  ]);
+  if (alerts.error) throw new Error(alerts.error.message);
+  if (findings.error) throw new Error(findings.error.message);
+  const byAlert = new Map<string, { name: string; level: string }[]>();
+  for (const f of findings.data ?? []) {
+    if (!f.alert_id) continue;
+    const arr = byAlert.get(f.alert_id) ?? [];
+    arr.push({ name: f.raw_material_name, level: f.risk_level });
+    byAlert.set(f.alert_id, arr);
+  }
+  return weeks.map((w) => ({
+    id: w.id,
+    label: w.week_label,
+    week: w.wk!.week,
+    year: w.wk!.year,
+    alerts: (alerts.data ?? [])
+      .filter((a) => a.analysis_id === w.id)
+      .map((a) => ({ ...a, materials: byAlert.get(a.id) ?? [] })),
+  }));
+});
+
+export const setAlertClosed = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ alertId: z.string().uuid(), closed: z.boolean() }).parse(data))
+  .handler(async ({ data }) => {
+    const db = await gate();
+    const { currentUser } = await import("./gate.server");
+    const user = await currentUser();
+    const { error } = await db
+      .from("rasff_alerts")
+      .update({
+        closed: data.closed,
+        closed_at: data.closed ? new Date().toISOString() : null,
+        closed_by: data.closed ? user?.name ?? null : null,
+      })
+      .eq("id", data.alertId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
