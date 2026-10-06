@@ -13,12 +13,14 @@ const NAV = [
   { to: "/fornecedores", label: "Fornecedores", group: "gestao", icon: Users },
   { to: "/documentos", label: "Documentação", group: "documentos", icon: FileText },
   { to: "/conformidade", label: "Conformidade", group: "documentos", icon: ShieldCheck },
+  { to: "/configuracao", label: "Utilizadores", group: "config", icon: Settings },
 ] as const;
 
 const GROUPS = [
   { id: "principal", label: "Principal" },
   { id: "gestao", label: "Gestão" },
   { id: "documentos", label: "Documentos" },
+  { id: "config", label: "Configuração" },
 ] as const;
 
 export function AppShell({

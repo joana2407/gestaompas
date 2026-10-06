@@ -4,12 +4,17 @@ import { z } from "zod";
 export const unlockSite = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ pin: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
-    const { gateSession, pinMatches, teamMembers } = await import("./gate.server");
+    const { gateSession, pinMatches, hashPin } = await import("./gate.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const member = teamMembers().find((m) => pinMatches(data.pin, m.pin));
-    if (member) {
+    const { data: member } = await supabaseAdmin
+      .from("team_users")
+      .select("id, name, role, active")
+      .eq("pin_hash", hashPin(data.pin))
+      .maybeSingle();
+    if (member?.active) {
       const session = await gateSession();
-      await session.update({ unlocked: true, name: member.name, role: member.role });
+      await session.update({ unlocked: true, name: member.name, role: member.role, userId: member.id });
       return { ok: true as const, name: member.name };
     }
 

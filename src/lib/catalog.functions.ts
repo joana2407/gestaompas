@@ -400,6 +400,8 @@ export const setMaterialIngredients = createServerFn({ method: "POST" })
 export const deleteMaterial = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ materialId: z.string().uuid() }).parse(data))
   .handler(async ({ data }) => {
+    const { requirePermission } = await import("./gate.server");
+    await requirePermission("eliminar_mp");
     const db = await gate();
     const { data: docs } = await db
       .from("documents")
