@@ -28,4 +28,4 @@
 - [x] Painel de conformidade por MP e por fornecedor: documentos expirados, fornecedores secundários, alergénios críticos, estado documental
 - [x] Origem obrigatória por MP e por cada ingrediente nas MP compostas
 - [x] Esquema de cores mais legível e ícones de alergénios/fábricas aplicados a todos os painéis
-- [ ] Painel de vigilância RASFF (semanas ≥38, por origem/MP, fechar alertas)
+- [x] Painel de vigilância RASFF (semanas ≥38, por origem/MP, fechar alertas)

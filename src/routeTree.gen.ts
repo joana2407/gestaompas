@@ -18,6 +18,7 @@ import { Route as FabricasRouteImport } from './routes/fabricas'
 import { Route as FornecedoresRouteImport } from './routes/fornecedores'
 import { Route as MateriasPrimasRouteImport } from './routes/materias-primas'
 import { Route as NovaAnaliseRouteImport } from './routes/nova-analise'
+import { Route as VigilanciaRouteImport } from './routes/vigilancia'
 import { Route as AnaliseAnalysisIdRouteImport } from './routes/analise.$analysisId'
 import { Route as FornecedorSupplierIdRouteImport } from './routes/fornecedor.$supplierId'
 import { Route as MateriaPrimaMaterialIdRouteImport } from './routes/materia-prima.$materialId'
@@ -67,6 +68,11 @@ const NovaAnaliseRoute = NovaAnaliseRouteImport.update({
   path: '/nova-analise',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VigilanciaRoute = VigilanciaRouteImport.update({
+  id: '/vigilancia',
+  path: '/vigilancia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnaliseAnalysisIdRoute = AnaliseAnalysisIdRouteImport.update({
   id: '/analise/$analysisId',
   path: '/analise/$analysisId',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/fornecedores': typeof FornecedoresRoute
   '/materias-primas': typeof MateriasPrimasRoute
   '/nova-analise': typeof NovaAnaliseRoute
+  '/vigilancia': typeof VigilanciaRoute
   '/analise/$analysisId': typeof AnaliseAnalysisIdRoute
   '/fornecedor/$supplierId': typeof FornecedorSupplierIdRoute
   '/materia-prima/$materialId': typeof MateriaPrimaMaterialIdRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/fornecedores': typeof FornecedoresRoute
   '/materias-primas': typeof MateriasPrimasRoute
   '/nova-analise': typeof NovaAnaliseRoute
+  '/vigilancia': typeof VigilanciaRoute
   '/analise/$analysisId': typeof AnaliseAnalysisIdRoute
   '/fornecedor/$supplierId': typeof FornecedorSupplierIdRoute
   '/materia-prima/$materialId': typeof MateriaPrimaMaterialIdRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/fornecedores': typeof FornecedoresRoute
   '/materias-primas': typeof MateriasPrimasRoute
   '/nova-analise': typeof NovaAnaliseRoute
+  '/vigilancia': typeof VigilanciaRoute
   '/analise/$analysisId': typeof AnaliseAnalysisIdRoute
   '/fornecedor/$supplierId': typeof FornecedorSupplierIdRoute
   '/materia-prima/$materialId': typeof MateriaPrimaMaterialIdRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/materias-primas'
     | '/nova-analise'
+    | '/vigilancia'
     | '/analise/$analysisId'
     | '/fornecedor/$supplierId'
     | '/materia-prima/$materialId'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/materias-primas'
     | '/nova-analise'
+    | '/vigilancia'
     | '/analise/$analysisId'
     | '/fornecedor/$supplierId'
     | '/materia-prima/$materialId'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/materias-primas'
     | '/nova-analise'
+    | '/vigilancia'
     | '/analise/$analysisId'
     | '/fornecedor/$supplierId'
     | '/materia-prima/$materialId'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   FornecedoresRoute: typeof FornecedoresRoute
   MateriasPrimasRoute: typeof MateriasPrimasRoute
   NovaAnaliseRoute: typeof NovaAnaliseRoute
+  VigilanciaRoute: typeof VigilanciaRoute
   AnaliseAnalysisIdRoute: typeof AnaliseAnalysisIdRoute
   FornecedorSupplierIdRoute: typeof FornecedorSupplierIdRoute
   MateriaPrimaMaterialIdRoute: typeof MateriaPrimaMaterialIdRoute
@@ -251,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NovaAnaliseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vigilancia': {
+      id: '/vigilancia'
+      path: '/vigilancia'
+      fullPath: '/vigilancia'
+      preLoaderRoute: typeof VigilanciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analise/$analysisId': {
       id: '/analise/$analysisId'
       path: '/analise/$analysisId'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   FornecedoresRoute: FornecedoresRoute,
   MateriasPrimasRoute: MateriasPrimasRoute,
   NovaAnaliseRoute: NovaAnaliseRoute,
+  VigilanciaRoute: VigilanciaRoute,
   AnaliseAnalysisIdRoute: AnaliseAnalysisIdRoute,
   FornecedorSupplierIdRoute: FornecedorSupplierIdRoute,
   MateriaPrimaMaterialIdRoute: MateriaPrimaMaterialIdRoute,
