@@ -43,7 +43,7 @@ function ConfigPage() {
     setSaving(true);
     try {
       const res = await saveTeamUser({ data: draft });
-      if (!res.ok) return toast.error(res.error);
+      if (!res.ok) { toast.error(res.error); return; }
       toast.success("Utilizador guardado.");
       setDraft(null);
       await qc.invalidateQueries({ queryKey: ["team_users"] });
@@ -57,7 +57,7 @@ function ConfigPage() {
   async function remove(id: string, name: string) {
     if (!confirm(`Eliminar o acesso de ${name}?`)) return;
     const res = await deleteTeamUser({ data: { id } });
-    if (!res.ok) return toast.error(res.error);
+    if (!res.ok) { toast.error(res.error); return; }
     toast.success("Acesso eliminado.");
     await qc.invalidateQueries({ queryKey: ["team_users"] });
   }

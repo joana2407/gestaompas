@@ -59,7 +59,7 @@ export const saveTeamUser = createServerFn({ method: "POST" })
       const { data: existing } = await db.from("team_users").select("name").eq("id", data.id).maybeSingle();
       if (existing?.name === me?.name && (!data.active || !data.permissions.includes("gerir_utilizadores")))
         return { ok: false as const, error: "Não pode retirar a sua própria permissão de gestão ou desativar-se." };
-      const { error } = await db.from("team_users").update(row).eq("id", data.id);
+      const { error } = await db.from("team_users").update(row as never).eq("id", data.id);
       if (error) return { ok: false as const, error: error.message };
     } else {
       if (!data.pin) return { ok: false as const, error: "Indique um PIN para o novo utilizador." };
