@@ -80,7 +80,7 @@ function SurveillancePage() {
   }
 
   return (
-    <AppShell>
+    <AppShell title="Vigilância RASFF" description="Semanas a partir da 38: alertas por origem e por matéria-prima.">
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">Vigilância RASFF</h1>
