@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Factory, FileText, Home, LogOut, Menu, Package, ShieldCheck, Users, X } from "lucide-react";
+import { ChevronRight, Factory, FileText, Home, LogOut, Menu, Package, Settings, ShieldCheck, Users, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -59,13 +59,13 @@ export function AppShell({
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4" aria-label="Navegação principal">
-        {GROUPS.map((group) => (
+        {GROUPS.filter((g) => g.id !== "config" || user?.permissions?.includes("gerir_utilizadores")).map((group) => (
           <div key={group.id}>
             <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground/70 uppercase">
               {group.label}
             </p>
             <div className="space-y-0.5">
-              {NAV.filter((item) => item.group === group.id).map((item) => {
+              {NAV.filter((item) => item.group === group.id && (item.to !== "/configuracao" || user?.permissions?.includes("gerir_utilizadores"))).map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
