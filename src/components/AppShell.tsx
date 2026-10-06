@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Factory, FileText, Home, LogOut, Menu, Package, Radar, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
+import { ChevronRight, Factory, FileText, Home, LogOut, Menu, Package, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
