@@ -524,6 +524,39 @@ export type Database = {
         }
         Relationships: []
       }
+      team_users: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          permissions: string[]
+          pin_hash: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          permissions?: string[]
+          pin_hash: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          permissions?: string[]
+          pin_hash?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
