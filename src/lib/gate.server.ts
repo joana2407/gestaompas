@@ -2,7 +2,7 @@ import { redirect } from "@tanstack/react-router";
 import { useSession } from "@tanstack/react-start/server";
 import { createHash, timingSafeEqual } from "node:crypto";
 
-type GateSession = { unlocked?: boolean; name?: string; role?: string };
+type GateSession = { unlocked?: boolean; name?: string; role?: string; userId?: string };
 
 export type TeamMember = { pin: string; name: string; role: string };
 
@@ -39,15 +39,39 @@ export async function isUnlocked(): Promise<boolean> {
   return session.data.unlocked === true;
 }
 
-export async function currentUser(): Promise<{ name: string; role: string } | null> {
+export async function currentUser(): Promise<{ name: string; role: string; permissions: string[] } | null> {
   const session = await gateSession();
   if (session.data.unlocked !== true) return null;
-  return { name: session.data.name ?? "Equipa Qualidade", role: session.data.role ?? "" };
+  const name = session.data.name ?? "Equipa Qualidade";
+  let permissions: string[] = [];
+  if (session.data.userId) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("team_users")
+      .select("permissions, active, role, name")
+      .eq("id", session.data.userId)
+      .maybeSingle();
+    if (!data || !data.active) return null;
+    permissions = data.permissions;
+    return { name: data.name, role: data.role, permissions };
+  }
+  return { name, role: session.data.role ?? "", permissions };
 }
 
 /** Throws a redirect to the PIN screen unless this browser has unlocked the site. */
 export async function requireUnlocked(): Promise<void> {
   if (!(await isUnlocked())) throw redirect({ to: "/entrar" });
+}
+
+export async function requirePermission(permission: string) {
+  const user = await currentUser();
+  if (!user) throw redirect({ to: "/entrar" });
+  if (!user.permissions.includes(permission)) throw new Error("Sem permissão para esta ação.");
+  return user;
+}
+
+export function hashPin(pin: string): string {
+  return createHash("sha256").update(pin, "utf8").digest("hex");
 }
 
 /** Hash both sides first: timingSafeEqual throws on length mismatch. */

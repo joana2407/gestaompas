@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConfiguracaoRouteImport } from './routes/configuracao'
 import { Route as ConformidadeRouteImport } from './routes/conformidade'
 import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as EntrarRouteImport } from './routes/entrar'
@@ -24,6 +25,11 @@ import { Route as MateriaPrimaMaterialIdRouteImport } from './routes/materia-pri
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracaoRoute = ConfiguracaoRouteImport.update({
+  id: '/configuracao',
+  path: '/configuracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConformidadeRoute = ConformidadeRouteImport.update({
@@ -79,6 +85,7 @@ const MateriaPrimaMaterialIdRoute = MateriaPrimaMaterialIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/configuracao': typeof ConfiguracaoRoute
   '/conformidade': typeof ConformidadeRoute
   '/documentos': typeof DocumentosRoute
   '/entrar': typeof EntrarRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/configuracao': typeof ConfiguracaoRoute
   '/conformidade': typeof ConformidadeRoute
   '/documentos': typeof DocumentosRoute
   '/entrar': typeof EntrarRoute
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/configuracao': typeof ConfiguracaoRoute
   '/conformidade': typeof ConformidadeRoute
   '/documentos': typeof DocumentosRoute
   '/entrar': typeof EntrarRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/configuracao'
     | '/conformidade'
     | '/documentos'
     | '/entrar'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/configuracao'
     | '/conformidade'
     | '/documentos'
     | '/entrar'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/configuracao'
     | '/conformidade'
     | '/documentos'
     | '/entrar'
@@ -161,6 +173,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfiguracaoRoute: typeof ConfiguracaoRoute
   ConformidadeRoute: typeof ConformidadeRoute
   DocumentosRoute: typeof DocumentosRoute
   EntrarRoute: typeof EntrarRoute
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracao': {
+      id: '/configuracao'
+      path: '/configuracao'
+      fullPath: '/configuracao'
+      preLoaderRoute: typeof ConfiguracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conformidade': {
@@ -257,6 +277,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfiguracaoRoute: ConfiguracaoRoute,
   ConformidadeRoute: ConformidadeRoute,
   DocumentosRoute: DocumentosRoute,
   EntrarRoute: EntrarRoute,
