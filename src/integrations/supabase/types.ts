@@ -270,6 +270,9 @@ export type Database = {
       rasff_alerts: {
         Row: {
           analysis_id: string
+          closed: boolean
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           hazard: string | null
           hazard_type: string | null
@@ -283,6 +286,9 @@ export type Database = {
         }
         Insert: {
           analysis_id: string
+          closed?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           hazard?: string | null
           hazard_type?: string | null
@@ -296,6 +302,9 @@ export type Database = {
         }
         Update: {
           analysis_id?: string
+          closed?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           hazard?: string | null
           hazard_type?: string | null

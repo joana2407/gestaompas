@@ -1,0 +1,1 @@
+ALTER TABLE public.rasff_alerts ADD COLUMN closed boolean NOT NULL DEFAULT false, ADD COLUMN closed_at timestamptz, ADD COLUMN closed_by text;
