@@ -185,7 +185,7 @@ function Dashboard() {
 
       {chartData.length > 0 ? (
         <section className="card-elegant mt-6 p-5">
-          <h2 className="text-base font-semibold">Evolução do risco por semana</h2>
+          <h2 className="text-base font-semibold">Evolução do risco das Matérias-Primas por Semana</h2>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -210,7 +210,7 @@ function Dashboard() {
       ) : null}
 
       <section className="mt-6">
-        <h2 className="mb-3 text-base font-semibold">Relatórios semanais</h2>
+        <h2 className="mb-3 text-base font-semibold">RASFF: Relatórios Semanais</h2>
         <div className="relative mb-4 max-w-lg">
           <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
           <Input aria-label="Pesquisar relatórios semanais" placeholder="Pesquisar semana, matéria-prima ou sumário…" value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} className="pl-9" />
