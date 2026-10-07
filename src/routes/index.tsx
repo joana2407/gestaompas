@@ -157,7 +157,7 @@ function Dashboard() {
 
       <section className="card-elegant mt-6 p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold">Conformidade documental e alergénios</h2>
+          <h2 className="text-base font-semibold">Conformidade Documental</h2>
           <div className="flex gap-2">
             <Button asChild size="sm" variant="outline">
               <Link to="/documentos">Documentação</Link>
