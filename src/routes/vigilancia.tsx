@@ -1,10 +1,11 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { CheckCircle2, Circle, Globe2, Package } from "lucide-react";
+import { CheckCircle2, Circle, FileText, Globe2, Package } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
 import { gateStatus } from "@/lib/gate.functions";
 import { listSurveillance, setAlertClosed } from "@/lib/data.functions";
 
@@ -115,6 +116,7 @@ function SurveillancePage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {week ? <Button asChild variant="outline" size="sm"><Link to="/analise/$analysisId" params={{ analysisId: week.id }}><FileText className="size-4" /> Relatório semanal</Link></Button> : null}
               <button onClick={() => setView("origem")} className={`inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm ${view === "origem" ? "bg-primary text-primary-foreground" : "bg-card"}`}>
                 <Globe2 className="h-4 w-4" /> Por origem
               </button>

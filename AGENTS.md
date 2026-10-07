@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Weekly RASFF history and surveillance link to the same persisted analysis detail page so later consultation retains the original report structure.
