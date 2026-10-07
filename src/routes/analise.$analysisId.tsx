@@ -3,12 +3,13 @@ import { gateStatus } from "@/lib/gate.functions";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, Download, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Lock, Search, Unlock } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { setAnalysisStatus, updateFinding as updateFindingFn } from "@/lib/data.functions";
 import { analysisDetailQuery } from "@/lib/queries";
 
@@ -23,6 +24,8 @@ export const Route = createFileRoute("/analise/$analysisId")({
       },
       { property: "og:title", content: "Relatório semanal de risco RASFF" },
       { property: "og:description", content: "MP afetadas, nível de risco, rastreabilidade e recomendações de ação." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   beforeLoad: async () => {
@@ -43,12 +46,21 @@ function Report() {
   const { data } = useSuspenseQuery(analysisDetailQuery(analysisId));
   const queryClient = useQueryClient();
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-  const analysis = data.analysis!;
+  const analysis = data.analysis;
+  if (!analysis) throw notFound();
   const alertById = new Map(data.alerts.map((alert) => [alert.id, alert]));
   const findings = [...data.findings].sort(
     (a, b) => LEVEL_ORDER.indexOf(a.risk_level) - LEVEL_ORDER.indexOf(b.risk_level),
   );
+  const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const visibleFindings = findings.filter((finding) => {
+    const alert = finding.alert_id ? alertById.get(finding.alert_id) : null;
+    return normalize([finding.raw_material_name, finding.ingredient_name, finding.reason, finding.traceability,
+      finding.recommendation, finding.review_note, alert?.reference, alert?.product, alert?.hazard, alert?.origin_country,
+    ].filter(Boolean).join(" ")).includes(normalize(search.trim()));
+  });
 
   async function updateFinding(
     id: string,
@@ -153,13 +165,18 @@ function Report() {
 
       <section className="mt-6">
         <h2 className="mb-3 text-base font-semibold">Matérias-primas em risco</h2>
+        <div className="relative mb-4 max-w-lg">
+          <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+          <Input aria-label="Pesquisar no relatório" placeholder="Pesquisar MP, ingrediente, origem, perigo ou referência…" value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" />
+        </div>
         {findings.length === 0 ? (
           <div className="panel p-8 text-center text-sm text-muted-foreground">
             Nenhuma matéria-prima foi identificada em risco nos alertas desta semana.
           </div>
         ) : (
           <div className="grid gap-3">
-            {findings.map((finding) => {
+            {visibleFindings.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma matéria-prima corresponde à pesquisa.</p> : null}
+            {visibleFindings.map((finding) => {
               const alert = finding.alert_id ? alertById.get(finding.alert_id) : null;
               return (
                 <article key={finding.id} className="panel p-5">

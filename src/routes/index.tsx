@@ -10,14 +10,17 @@ import {
   Layers,
   Package,
   ShieldAlert,
+  Search,
   Users,
 } from "lucide-react";
 import type { ElementType } from "react";
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { AppShell } from "@/components/AppShell";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { analysesQuery, catalogQuery, documentsQuery, findingsOverviewQuery, materialsQuery } from "@/lib/queries";
 import { ALERGENIOS_CRITICOS, validityState } from "@/lib/domain";
 
@@ -31,6 +34,8 @@ export const Route = createFileRoute("/")({
           "Dashboard semanal que cruza alertas RASFF com o inventário de matérias-primas de panificação e classifica o risco por MP.",
       },
       { property: "og:title", content: "Vigilância RASFF — Risco de matérias-primas" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Análise semanal de alertas RASFF cruzada com o inventário de MP, com relatórios guardados.",
@@ -90,6 +95,12 @@ function Dashboard() {
   const { data: materials } = useSuspenseQuery(materialsQuery);
   const { data: catalog } = useSuspenseQuery(catalogQuery);
   const { data: docs } = useSuspenseQuery(documentsQuery);
+  const [reportSearch, setReportSearch] = useState("");
+  const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const visibleAnalyses = analyses.filter((analysis) => normalize([
+    analysis.week_label, analysis.summary, analysis.source_filename,
+    ...findings.filter((f) => f.analysis_id === analysis.id).map((f) => f.raw_material_name),
+  ].filter(Boolean).join(" ")).includes(normalize(reportSearch.trim())));
 
   const count = (level: string) => findings.filter((f) => f.risk_level === level).length;
 
@@ -200,6 +211,10 @@ function Dashboard() {
 
       <section className="mt-6">
         <h2 className="mb-3 text-base font-semibold">Relatórios semanais</h2>
+        <div className="relative mb-4 max-w-lg">
+          <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+          <Input aria-label="Pesquisar relatórios semanais" placeholder="Pesquisar semana, matéria-prima ou sumário…" value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} className="pl-9" />
+        </div>
         {analyses.length === 0 ? (
             <div className="card-elegant flex flex-col items-center gap-3 p-10 text-center">
             <Layers className="size-8 text-muted-foreground" />
@@ -212,7 +227,8 @@ function Dashboard() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {analyses.map((analysis) => {
+            {visibleAnalyses.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum relatório corresponde à pesquisa.</p> : null}
+            {visibleAnalyses.map((analysis) => {
               const own = findings.filter((f) => f.analysis_id === analysis.id);
               const high = own.filter((f) => f.risk_level === "ALTO").length;
               return (
