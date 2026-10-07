@@ -29,4 +29,4 @@
 - [x] Origem obrigatória por MP e por cada ingrediente nas MP compostas
 - [x] Esquema de cores mais legível e ícones de alergénios/fábricas aplicados a todos os painéis
 - [x] Painel de vigilância RASFF (semanas ≥38, por origem/MP, fechar alertas)
-- [ ] Consulta e pesquisa posterior dos relatórios semanais no formato de sumário e fichas de MP enviado
+- [x] Consulta e pesquisa posterior dos relatórios semanais no formato de sumário e fichas de MP enviado
