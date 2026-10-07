@@ -48,8 +48,9 @@ function Report() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const analysis = data.analysis;
-  if (!analysis) throw notFound();
+  const loadedAnalysis = data.analysis;
+  if (!loadedAnalysis) throw notFound();
+  const analysis = loadedAnalysis;
   const alertById = new Map(data.alerts.map((alert) => [alert.id, alert]));
   const findings = [...data.findings].sort(
     (a, b) => LEVEL_ORDER.indexOf(a.risk_level) - LEVEL_ORDER.indexOf(b.risk_level),
